@@ -98,34 +98,33 @@ export function polygonToConstraints(
     ? options.colors
     : DEFAULT_COLORS;
 
-  return polygon
-    .map((from, index) => {
-      const to = polygon[(index + 1) % polygon.length];
-      const dx = to[0] - from[0];
-      const dy = to[1] - from[1];
+  const constraints: Constraint[] = [];
 
-      let a = dy;
-      let b = -dx;
-      const norm = Math.hypot(a, b);
+  polygon.forEach((from, index) => {
+    const to = polygon[(index + 1) % polygon.length];
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
 
-      if (norm < EPSILON) return null;
+    let a = dy;
+    let b = -dx;
+    const norm = Math.hypot(a, b);
 
-      a /= norm;
-      b /= norm;
+    if (norm < EPSILON) return;
 
-      return {
-        id: `${options.idPrefix}-edge-${index}`,
-        a: clean(a),
-        b: clean(b),
-        limit: clean(a * from[0] + b * from[1]),
-        label: `${options.labelPrefix ?? "boundary"} ${index + 1}`,
-        color: colors[index % colors.length],
-      } satisfies Constraint;
-    })
-    .filter(
-      (constraint): constraint is Constraint =>
-        constraint !== null,
-    );
+    a /= norm;
+    b /= norm;
+
+    constraints.push({
+      id: `${options.idPrefix}-edge-${index}`,
+      a: clean(a),
+      b: clean(b),
+      limit: clean(a * from[0] + b * from[1]),
+      label: `${options.labelPrefix ?? "boundary"} ${index + 1}`,
+      color: colors[index % colors.length],
+    });
+  });
+
+  return constraints;
 }
 
 function cloneConstraints(
