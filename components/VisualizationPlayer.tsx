@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Constraint, Point2D } from "@/engine/types";
 import type { VisualizationDefinition } from "@/visualizations/types";
 import { VisualizationCanvas } from "./VisualizationCanvas";
@@ -31,6 +38,12 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
   const startedAtRef = useRef<number>(0);
   const progressRef = useRef(0);
   const stage = definition.stages[stageIndex];
+
+  useLayoutEffect(() => {
+    setEnabledConstraints(
+      new Set(stage.scene.constraints.map((constraint) => constraint.id)),
+    );
+  }, [stage.scene.constraints]);
 
   useEffect(() => {
     progressRef.current = progress;
