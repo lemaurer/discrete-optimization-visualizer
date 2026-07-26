@@ -4,13 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { VisualizationPlayer } from "@/components/VisualizationPlayer";
 import { visualizationRegistry } from "@/visualizations/registry";
 
-const futureChapters = [
-  { number: "02", title: "Linear programming", count: 0 },
-  { number: "03", title: "Cutting planes", count: 0 },
-  { number: "04", title: "Branch & bound", count: 0 },
-  { number: "05", title: "Graph algorithms", count: 0 },
-];
-
 export default function Home() {
   const [activeId, setActiveId] = useState(visualizationRegistry[0]?.id ?? "");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -77,16 +70,6 @@ export default function Home() {
                     <i aria-hidden="true">→</i>
                   </button>
                 ))}
-              </div>
-            </section>
-          ))}
-
-          {futureChapters.map((chapter) => (
-            <section className="chapter-group chapter-group--locked" key={chapter.number}>
-              <div className="chapter-heading">
-                <span>{chapter.number}</span>
-                <h2>{chapter.title}</h2>
-                <em>Soon</em>
               </div>
             </section>
           ))}

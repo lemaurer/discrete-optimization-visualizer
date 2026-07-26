@@ -234,15 +234,6 @@ input:focus-visible {
   transform: none;
 }
 
-.chapter-group--locked {
-  margin-bottom: 15px;
-  opacity: 0.64;
-}
-
-.chapter-group--locked .chapter-heading > span {
-  color: #64767a;
-}
-
 .sidebar-footer {
   display: grid;
   gap: 9px;
