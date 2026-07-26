@@ -46,6 +46,7 @@ export interface VisualizationDefinition {
   examples?: VisualizationExample[];
   controls?: {
     constraints?: boolean;
+    grid?: boolean;
     lattice?: boolean;
     vertices?: boolean;
     labels?: boolean;
