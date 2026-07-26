@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { CSSProperties } from "react";
 import type { Constraint, Point2D } from "@/engine/types";
 import type {
   VisualizationDefinition,
@@ -21,7 +22,9 @@ const SUMMARY_STAGE_DURATION = 1500;
 const DEFAULT_EXAMPLE_ID = "__default__";
 
 function formatPoint(point: Point2D) {
-  return `(${point.map((value) => (Math.round(value * 100) / 100).toString()).join(", ")})`;
+  return `(${point
+    .map((value) => (Math.round(value * 100) / 100).toString())
+    .join(", ")})`;
 }
 
 function defaultExample(definition: VisualizationDefinition): VisualizationExample {
@@ -34,7 +37,11 @@ function defaultExample(definition: VisualizationDefinition): VisualizationExamp
   };
 }
 
-export function VisualizationPlayer({ definition }: { definition: VisualizationDefinition }) {
+export function VisualizationPlayer({
+  definition,
+}: {
+  definition: VisualizationDefinition;
+}) {
   const examples = useMemo(
     () =>
       definition.examples?.length
@@ -42,6 +49,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
         : [defaultExample(definition)],
     [definition],
   );
+
   const [exampleId, setExampleId] = useState(examples[0].id);
   const activeExample =
     examples.find((example) => example.id === exampleId) ?? examples[0];
@@ -52,9 +60,16 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
   const [progress, setProgress] = useState(0);
   const [navigationMode, setNavigationMode] =
     useState<VisualizationNavigationMode>("detail");
+
+  /**
+   * `null` means "follow the current stage default". Once the user touches a
+   * switch, its boolean value remains authoritative across stages and examples.
+   */
+  const [gridOverride, setGridOverride] = useState<boolean | null>(null);
   const [latticeOverride, setLatticeOverride] = useState<boolean | null>(null);
   const [verticesOverride, setVerticesOverride] = useState<boolean | null>(null);
   const [labelsOverride, setLabelsOverride] = useState<boolean | null>(null);
+
   const [zoom, setZoom] = useState(1);
   const [proofOpen, setProofOpen] = useState(false);
   const [focusedVertex, setFocusedVertex] = useState<{
@@ -64,12 +79,15 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
   const [enabledConstraints, setEnabledConstraints] = useState(
     () => new Set(stages[0].scene.constraints.map((constraint) => constraint.id)),
   );
+
   const frameRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
   const progressRef = useRef(0);
 
   const boundedStageIndex = Math.min(stageIndex, stages.length - 1);
   const stage = stages[boundedStageIndex];
+
+  const showGrid = gridOverride ?? stage.scene.showGrid !== false;
   const showLattice = latticeOverride ?? Boolean(stage.scene.showLattice);
   const showVertices = verticesOverride ?? Boolean(stage.scene.showVertices);
   const showLabels = labelsOverride ?? true;
@@ -117,6 +135,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
     setProgress(0);
     setPlaying(false);
     setNavigationMode("detail");
+    setGridOverride(null);
     setLatticeOverride(null);
     setVerticesOverride(null);
     setLabelsOverride(null);
@@ -131,9 +150,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
     setProgress(0);
     setPlaying(false);
     setFocusedVertex(null);
-    setLatticeOverride(null);
-    setVerticesOverride(null);
-    setLabelsOverride(null);
+    setZoom(1);
   }, [exampleId]);
 
   useLayoutEffect(() => {
@@ -246,6 +263,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
       ) {
         return;
       }
+
       if (event.code === "Space") {
         event.preventDefault();
         setPlaying((value) => !value);
@@ -253,6 +271,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
       if (event.key === "ArrowRight") moveByNavigation(1);
       if (event.key === "ArrowLeft") moveByNavigation(-1);
     };
+
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [moveByNavigation]);
@@ -277,6 +296,11 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
   const proof = activeExample.proof ?? definition.proof;
   const renderedProgress = navigationMode === "detail" ? progress : 1;
   const controls = definition.controls ?? {};
+  const showDisplayControls =
+    controls.grid !== false ||
+    controls.lattice !== false ||
+    controls.vertices !== false ||
+    controls.labels !== false;
 
   return (
     <div className="lesson">
@@ -331,7 +355,11 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
                   (mode) => (
                     <button
                       aria-pressed={navigationMode === mode}
-                      className={navigationMode === mode ? "navigation-mode navigation-mode--active" : "navigation-mode"}
+                      className={
+                        navigationMode === mode
+                          ? "navigation-mode navigation-mode--active"
+                          : "navigation-mode"
+                      }
                       key={mode}
                       onClick={() => {
                         setPlaying(false);
@@ -340,7 +368,11 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
                       }}
                       type="button"
                     >
-                      {mode === "detail" ? "Detail" : mode === "split" ? "Splits" : "Closures"}
+                      {mode === "detail"
+                        ? "Detail"
+                        : mode === "split"
+                          ? "Splits"
+                          : "Closures"}
                     </button>
                   ),
                 )}
@@ -377,6 +409,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
               enabledConstraints={enabledConstraints}
               onVertexFocus={setFocusedVertex}
               scene={stage.scene}
+              showGrid={showGrid}
               showLabels={showLabels}
               showLattice={showLattice}
               showVertices={showVertices}
@@ -387,7 +420,9 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
                 <p>Vertex {formatPoint(focusedVertex.point)}</p>
                 <span>
                   {focusedVertex.active.length
-                    ? `Tight: ${focusedVertex.active.map((constraint) => constraint.label).join(", ")}`
+                    ? `Tight: ${focusedVertex.active
+                        .map((constraint) => constraint.label)
+                        .join(", ")}`
                     : "No tight constraints"}
                 </span>
               </div>
@@ -401,7 +436,9 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
                 <button
                   onClick={() =>
                     setEnabledConstraints(
-                      new Set(stage.scene.constraints.map((constraint) => constraint.id)),
+                      new Set(
+                        stage.scene.constraints.map((constraint) => constraint.id),
+                      ),
                     )
                   }
                   type="button"
@@ -415,10 +452,16 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
                   return (
                     <button
                       aria-pressed={enabled}
-                      className={enabled ? "constraint-chip constraint-chip--active" : "constraint-chip"}
+                      className={
+                        enabled
+                          ? "constraint-chip constraint-chip--active"
+                          : "constraint-chip"
+                      }
                       key={constraint.id}
                       onClick={() => toggleConstraint(constraint.id)}
-                      style={{ "--constraint-color": constraint.color } as React.CSSProperties}
+                      style={
+                        { "--constraint-color": constraint.color } as CSSProperties
+                      }
                       type="button"
                     >
                       <i />
@@ -456,9 +499,20 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
             )}
           </div>
 
-          {(controls.lattice !== false || controls.vertices !== false || controls.labels !== false) && (
+          {showDisplayControls && (
             <div className="display-controls">
               <span className="control-label">Display</span>
+              {controls.grid !== false && (
+                <label>
+                  <input
+                    checked={showGrid}
+                    onChange={(event) => setGridOverride(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <i />
+                  Coordinate grid
+                </label>
+              )}
               {controls.lattice !== false && (
                 <label>
                   <input
@@ -478,7 +532,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
                     type="checkbox"
                   />
                   <i />
-                  Vertex labels
+                  Vertices
                 </label>
               )}
               {controls.labels !== false && (
@@ -553,7 +607,11 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
             return (
               <button
                 aria-label={`Go to ${navigationMode} ${position + 1}: ${item.title}`}
-                className={index === boundedStageIndex ? "timeline-step timeline-step--active" : "timeline-step"}
+                className={
+                  index === boundedStageIndex
+                    ? "timeline-step timeline-step--active"
+                    : "timeline-step"
+                }
                 key={item.id}
                 onClick={() => moveToStage(index)}
                 type="button"
@@ -565,10 +623,15 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
             );
           })}
           <div className="timeline-line" />
-          <div className="timeline-line timeline-line--active" style={{ width: `${overallProgress}%` }} />
+          <div
+            className="timeline-line timeline-line--active"
+            style={{ width: `${overallProgress}%` }}
+          />
         </div>
         <span className="keyboard-hint">
-          {navigationMode === "detail" ? "Every animation" : `Jump by ${navigationMode}`}
+          {navigationMode === "detail"
+            ? "Every animation"
+            : `Jump by ${navigationMode}`}
         </span>
       </footer>
     </div>
