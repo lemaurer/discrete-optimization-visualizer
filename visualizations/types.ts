@@ -1,5 +1,13 @@
 import type { Scene } from "@/engine/types";
 
+export type VisualizationNavigationMode = "detail" | "split" | "closure";
+
+export interface VisualizationStageNavigation {
+  closure?: number;
+  split?: number;
+  milestone?: "split" | "closure";
+}
+
 export interface VisualizationStage {
   id: string;
   kicker: string;
@@ -8,6 +16,20 @@ export interface VisualizationStage {
   formula?: string;
   insight?: string;
   scene: Scene;
+  navigation?: VisualizationStageNavigation;
+}
+
+export interface VisualizationProof {
+  title: string;
+  steps: string[];
+}
+
+export interface VisualizationExample {
+  id: string;
+  title: string;
+  description?: string;
+  stages: VisualizationStage[];
+  proof?: VisualizationProof;
 }
 
 export interface VisualizationDefinition {
@@ -21,16 +43,14 @@ export interface VisualizationDefinition {
   duration: number;
   accent: string;
   stages: VisualizationStage[];
+  examples?: VisualizationExample[];
   controls?: {
     constraints?: boolean;
     lattice?: boolean;
     vertices?: boolean;
     labels?: boolean;
   };
-  proof?: {
-    title: string;
-    steps: string[];
-  };
+  proof?: VisualizationProof;
 }
 
 export interface VisualizationModule {

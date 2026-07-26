@@ -65,31 +65,11 @@ export type SplitProjectionPhase =
   | "split-hull";
 
 export interface SplitProjectionScene {
-  /**
-   * Integral split vector π.
-   */
   pi: Point2D;
-
-  /**
-   * Integer split threshold π₀.
-   */
   pi0: number;
-
   phase: SplitProjectionPhase;
-
-  /**
-   * Draw orthogonal guides x → proj_π(x).
-   */
   showGuides?: boolean;
-
-  /**
-   * Main accent used for the π-axis.
-   */
   color?: string;
-
-  /**
-   * Color of the forbidden strip.
-   */
   stripColor?: string;
 }
 
@@ -109,6 +89,22 @@ export interface Scene {
   showVertices?: boolean;
   showActiveConstraints?: boolean;
   showIntegerHull?: boolean;
+
+  /**
+   * `points` is the ordinary Z² lattice. `x-lines` and `y-lines` are useful
+   * for mixed-integer projections where only one displayed coordinate is integral.
+   */
+  latticeMode?: "points" | "x-lines" | "y-lines";
+
+  axisLabels?: {
+    x: string;
+    y: string;
+  };
+
+  caption?: {
+    primary?: string;
+    secondary?: string;
+  };
 
   objective?: {
     vector: Point2D;
