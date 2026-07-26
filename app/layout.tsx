@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,35 +12,34 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const headerList = await headers();
-  const host = headerList.get("host") ?? "localhost:3000";
-  const protocol = host.includes("localhost") ? "http" : "https";
-  const origin = `${protocol}://${host}`;
+const vercelHost =
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+const siteOrigin =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
 
-  return {
-    metadataBase: new URL(origin),
+export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
+  title: "OR / VIS — Make Optimization Visible",
+  description:
+    "An interactive visual textbook for polyhedra, integer optimization, and the geometry behind algorithms.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+  },
+  openGraph: {
     title: "OR / VIS — Make Optimization Visible",
-    description:
-      "An interactive visual textbook for polyhedra, integer optimization, and the geometry behind algorithms.",
-    icons: {
-      icon: "/favicon.png",
-      shortcut: "/favicon.png",
-    },
-    openGraph: {
-      title: "OR / VIS — Make Optimization Visible",
-      description: "See constraints become geometry. Explore the polyhedra behind discrete optimization.",
-      type: "website",
-      images: [{ url: `${origin}/og.png`, width: 1200, height: 630, alt: "OR / VIS visual textbook" }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "OR / VIS — Make Optimization Visible",
-      description: "An interactive visual textbook for discrete optimization.",
-      images: [`${origin}/og.png`],
-    },
-  };
-}
+    description: "See constraints become geometry. Explore the polyhedra behind discrete optimization.",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "OR / VIS visual textbook" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "OR / VIS — Make Optimization Visible",
+    description: "An interactive visual textbook for discrete optimization.",
+    images: ["/og.png"],
+  },
+};
 
 export default function RootLayout({
   children,

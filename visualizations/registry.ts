@@ -1,9 +1,5 @@
-import type { VisualizationDefinition, VisualizationModule } from "./types";
-
-const modules = import.meta.glob<VisualizationModule>(
-  ["./**/*.ts", "!./registry.ts", "!./types.ts"],
-  { eager: true },
-);
+import { generatedVisualizations } from "./generated";
+import type { VisualizationDefinition } from "./types";
 
 function isVisualization(
   definition: VisualizationDefinition | undefined,
@@ -16,7 +12,6 @@ function isVisualization(
   );
 }
 
-export const visualizationRegistry: VisualizationDefinition[] = Object.values(modules)
-  .map((module) => module.default)
+export const visualizationRegistry: VisualizationDefinition[] = generatedVisualizations
   .filter(isVisualization)
   .sort((a, b) => a.chapter.localeCompare(b.chapter) || a.order - b.order);
