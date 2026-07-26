@@ -91,6 +91,19 @@ export interface Scene {
   showIntegerHull?: boolean;
 
   /**
+   * `uniform` preserves equal units on both axes. `stretch` fits each axis
+   * independently and is useful for schematic projections with very different
+   * coordinate ranges.
+   */
+  scaleMode?: "uniform" | "stretch";
+
+  /** Optional tick spacing. Omitted values are chosen automatically. */
+  axisTicks?: {
+    x?: number;
+    y?: number;
+  };
+
+  /**
    * `points` is the ordinary Z² lattice. `x-lines` and `y-lines` are useful
    * for mixed-integer projections where only one displayed coordinate is integral.
    */
