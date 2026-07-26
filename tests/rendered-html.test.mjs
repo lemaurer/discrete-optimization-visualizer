@@ -30,7 +30,9 @@ test("server-renders the OR / VIS learning workbench", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>OR \/ VIS — Make Optimization Visible<\/title>/i);
-  assert.match(html, /The Geometry of a Polyhedron/);
+  assert.match(html, /Split Closure/);
+  assert.match(html, /Polyhedron geometry/);
+  assert.match(html, /Cutting planes/);
   assert.match(html, /Constraint set/);
   assert.match(html, /Proof intuition/);
   assert.match(html, /Polyhedral geometry/);
@@ -51,7 +53,8 @@ test("discovers visualization modules and keeps drawing in the shared engine", a
   ]);
 
   assert.match(registry, /import\.meta\.glob/);
-  assert.match(registry, /\.visualization\.ts/);
+  assert.match(registry, /\.\/\*\*\/\*\.ts/);
+  assert.match(registry, /filter\(isVisualization\)/);
   assert.match(moduleSource, /chapter:\s*"Polyhedral geometry"/);
   assert.match(moduleSource, /stages:\s*\[/);
   assert.match(moduleSource, /P = \{ x ∈ ℝ² : Ax ≤ b \}/);

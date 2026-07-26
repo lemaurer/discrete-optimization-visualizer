@@ -16,8 +16,8 @@ integer hull.
 
 ## Add a visualization
 
-Create a new file anywhere under `visualizations/` with the suffix
-`.visualization.ts` and export a `VisualizationDefinition` as the default export:
+Create a new `.ts` file inside any chapter folder under `visualizations/` and export a
+`VisualizationDefinition` as the default export:
 
 ```ts
 import type { VisualizationDefinition } from "@/visualizations/types";
@@ -49,7 +49,8 @@ const lesson: VisualizationDefinition = {
 export default lesson;
 ```
 
-The registry uses `import.meta.glob`, so the sidebar discovers the file automatically. Lessons
+The registry uses `import.meta.glob` and validates the exported metadata, so the sidebar discovers
+the file automatically. Root support files without visualization metadata are ignored. Lessons
 declare scenes and stages; rendering stays in `engine/` and `components/VisualizationCanvas.tsx`.
 
 ## Run locally

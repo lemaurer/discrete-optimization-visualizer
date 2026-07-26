@@ -3,7 +3,6 @@ import type { VisualizationDefinition } from "@/visualizations/types";
 
 import {
   createIterations,
-  createInfiniteProcess,
 } from "@/engine/iterative";
 
 
@@ -81,13 +80,6 @@ const finiteRounds = createIterations(
     state: iteration,
   })
 );
-
-
-// infinite example
-const infiniteExample = createInfiniteProcess(
-  (iteration) => iteration
-);
-
 
 
 const visualization: VisualizationDefinition = {
