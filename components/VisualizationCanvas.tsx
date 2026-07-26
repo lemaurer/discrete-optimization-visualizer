@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { JSX, useCallback, useEffect, useRef, useState } from "react";
 import {
   activeConstraintsAt,
   clipToConstraints,
@@ -8,6 +8,7 @@ import {
   convexHull,
   integerPoints,
 } from "@/engine/geometry";
+import { renderSplitProjection } from "@/engine/renderSplitProjection";
 import type { Constraint, Point2D, Scene } from "@/engine/types";
 
 interface VisualizationCanvasProps {
@@ -204,16 +205,41 @@ export function VisualizationCanvas({
       }
     }
 
-    activeConstraints.forEach((constraint, index) => {
-      const [from, to] = constraintLine(constraint, scene.viewport);
-      context.beginPath();
-      context.moveTo(tx(from[0]), ty(from[1]));
-      context.lineTo(tx(to[0]), ty(to[1]));
-      context.strokeStyle = constraint.color ?? [COLORS.orange, COLORS.aqua, COLORS.lime][index % 3];
-      context.lineWidth = scene.showActiveConstraints ? 2.2 : 1.4;
-      context.globalAlpha = scene.showActiveConstraints ? 1 : 0.66;
-      context.stroke();
-      context.globalAlpha = 1;
+    if (scene.showConstraints !== false) {
+      activeConstraints.forEach((constraint, index) => {
+        const [from, to] = constraintLine(
+          constraint,
+          scene.viewport,
+        );
+
+        context.beginPath();
+        context.moveTo(tx(from[0]), ty(from[1]));
+        context.lineTo(tx(to[0]), ty(to[1]));
+
+        context.strokeStyle =
+          constraint.color ??
+          [COLORS.orange, COLORS.aqua, COLORS.lime][
+          index % 3
+          ];
+
+        context.lineWidth =
+          scene.showActiveConstraints ? 2.2 : 1.4;
+
+        context.globalAlpha =
+          scene.showActiveConstraints ? 1 : 0.66;
+
+        context.stroke();
+        context.globalAlpha = 1;
+      });
+    }
+
+    renderSplitProjection({
+      context,
+      scene,
+      tx,
+      ty,
+      animationProgress,
+      showLabels,
     });
 
     if (scene.objective) {

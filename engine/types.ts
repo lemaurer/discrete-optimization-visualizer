@@ -55,18 +55,65 @@ export type Primitive =
   | LinePrimitive
   | LabelPrimitive;
 
+export type SplitProjectionPhase =
+  | "direction"
+  | "project-facets"
+  | "project-polyhedron"
+  | "projected-strip"
+  | "lift-strip"
+  | "remove-strip"
+  | "split-hull";
+
+export interface SplitProjectionScene {
+  /**
+   * Integral split vector π.
+   */
+  pi: Point2D;
+
+  /**
+   * Integer split threshold π₀.
+   */
+  pi0: number;
+
+  phase: SplitProjectionPhase;
+
+  /**
+   * Draw orthogonal guides x → proj_π(x).
+   */
+  showGuides?: boolean;
+
+  /**
+   * Main accent used for the π-axis.
+   */
+  color?: string;
+
+  /**
+   * Color of the forbidden strip.
+   */
+  stripColor?: string;
+}
+
 export interface Scene {
-  viewport: { x: [number, number]; y: [number, number] };
+  viewport: {
+    x: [number, number];
+    y: [number, number];
+  };
+
   constraints: Constraint[];
   primitives?: Primitive[];
+
   showFeasibleRegion?: boolean;
+  showConstraints?: boolean;
   showGrid?: boolean;
   showLattice?: boolean;
   showVertices?: boolean;
   showActiveConstraints?: boolean;
   showIntegerHull?: boolean;
+
   objective?: {
     vector: Point2D;
     label: string;
   };
+
+  splitProjection?: SplitProjectionScene;
 }
