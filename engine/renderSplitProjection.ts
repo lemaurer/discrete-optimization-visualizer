@@ -7,6 +7,7 @@ import {
   computeSplitGeometry,
   lerpPoint,
 } from "./split";
+import { renderSplitMembership } from "./renderSplitMembership";
 
 interface RenderSplitProjectionOptions {
   context: CanvasRenderingContext2D;
@@ -38,20 +39,14 @@ function drawSegment(
   dashed = false,
 ) {
   context.save();
-
   context.globalAlpha = alpha;
   context.strokeStyle = color;
   context.lineWidth = width;
-
-  if (dashed) {
-    context.setLineDash([7, 6]);
-  }
-
+  if (dashed) context.setLineDash([7, 6]);
   context.beginPath();
   context.moveTo(tx(from[0]), ty(from[1]));
   context.lineTo(tx(to[0]), ty(to[1]));
   context.stroke();
-
   context.restore();
 }
 
@@ -69,31 +64,20 @@ function drawPolygon(
 
   context.save();
   context.globalAlpha = alpha;
-
   context.beginPath();
-
   points.forEach((point, index) => {
-    if (index === 0) {
-      context.moveTo(tx(point[0]), ty(point[1]));
-    } else {
-      context.lineTo(tx(point[0]), ty(point[1]));
-    }
+    if (index === 0) context.moveTo(tx(point[0]), ty(point[1]));
+    else context.lineTo(tx(point[0]), ty(point[1]));
   });
-
   if (points.length > 2) {
     context.closePath();
     context.fillStyle = fill;
     context.fill();
   }
-
-  if (dashed) {
-    context.setLineDash([8, 6]);
-  }
-
+  if (dashed) context.setLineDash([8, 6]);
   context.strokeStyle = stroke;
   context.lineWidth = 2.5;
   context.stroke();
-
   context.restore();
 }
 
@@ -106,23 +90,13 @@ function drawPoint(
   radius = 5,
 ) {
   context.save();
-
   context.beginPath();
-  context.arc(
-    tx(point[0]),
-    ty(point[1]),
-    radius,
-    0,
-    Math.PI * 2,
-  );
-
+  context.arc(tx(point[0]), ty(point[1]), radius, 0, Math.PI * 2);
   context.fillStyle = color;
   context.fill();
-
   context.strokeStyle = PAPER;
   context.lineWidth = 1.5;
   context.stroke();
-
   context.restore();
 }
 
@@ -135,18 +109,10 @@ function drawText(
   color: string,
 ) {
   context.save();
-
-  context.font =
-    "12px var(--font-geist-mono), monospace";
+  context.font = "12px var(--font-geist-mono), monospace";
   context.fillStyle = color;
   context.textAlign = "center";
-
-  context.fillText(
-    text,
-    tx(point[0]),
-    ty(point[1]) - 12,
-  );
-
+  context.fillText(text, tx(point[0]), ty(point[1]) - 12);
   context.restore();
 }
 
@@ -158,73 +124,52 @@ function drawArrow(
   ty: (value: number) => number,
   color: string,
 ) {
-  drawSegment(
-    context,
-    from,
-    to,
-    tx,
-    ty,
-    color,
-    3,
-  );
+  drawSegment(context, from, to, tx, ty, color, 3);
 
-  const screenFrom: Point2D = [
-    tx(from[0]),
-    ty(from[1]),
-  ];
-
-  const screenTo: Point2D = [
-    tx(to[0]),
-    ty(to[1]),
-  ];
-
+  const screenFrom: Point2D = [tx(from[0]), ty(from[1])];
+  const screenTo: Point2D = [tx(to[0]), ty(to[1])];
   const angle = Math.atan2(
     screenTo[1] - screenFrom[1],
     screenTo[0] - screenFrom[0],
   );
 
   context.save();
-
   context.fillStyle = color;
   context.beginPath();
   context.moveTo(screenTo[0], screenTo[1]);
-
   context.lineTo(
     screenTo[0] - 11 * Math.cos(angle - 0.45),
     screenTo[1] - 11 * Math.sin(angle - 0.45),
   );
-
   context.lineTo(
     screenTo[0] - 11 * Math.cos(angle + 0.45),
     screenTo[1] - 11 * Math.sin(angle + 0.45),
   );
-
   context.closePath();
   context.fill();
-
   context.restore();
 }
 
-export function renderSplitProjection({
-  context,
-  scene,
-  tx,
-  ty,
-  animationProgress,
-  showLabels,
-}: RenderSplitProjectionOptions) {
-  const configuration = scene.splitProjection;
+export function renderSplitProjection(options: RenderSplitProjectionOptions) {
+  if (options.scene.splitMembership) {
+    renderSplitMembership(options);
+    return;
+  }
 
+  const {
+    context,
+    scene,
+    tx,
+    ty,
+    animationProgress,
+    showLabels,
+  } = options;
+  const configuration = scene.splitProjection;
   if (!configuration) return;
 
   const progress = clamp01(animationProgress);
-
-  const accent =
-    configuration.color ?? DEFAULT_ACCENT;
-
-  const stripColor =
-    configuration.stripColor ?? DEFAULT_STRIP;
-
+  const accent = configuration.color ?? DEFAULT_ACCENT;
+  const stripColor = configuration.stripColor ?? DEFAULT_STRIP;
   const geometry = computeSplitGeometry(
     scene.constraints,
     scene.viewport,
@@ -249,36 +194,19 @@ export function renderSplitProjection({
       configuration.pi[0],
       configuration.pi[1],
     );
-
     const arrowEnd: Point2D = [
       (configuration.pi[0] / norm) * 1.2,
       (configuration.pi[1] / norm) * 1.2,
     ];
-
-    drawArrow(
-      context,
-      [0, 0],
-      arrowEnd,
-      tx,
-      ty,
-      accent,
-    );
+    drawArrow(context, [0, 0], arrowEnd, tx, ty, accent);
 
     if (showLabels) {
-      drawText(
-        context,
-        "π",
-        arrowEnd,
-        tx,
-        ty,
-        accent,
-      );
+      drawText(context, "π", arrowEnd, tx, ty, accent);
     }
   };
 
   const drawThresholdLabels = () => {
     if (!showLabels) return;
-
     drawText(
       context,
       `π₀ = ${configuration.pi0}`,
@@ -287,7 +215,6 @@ export function renderSplitProjection({
       ty,
       stripColor,
     );
-
     drawText(
       context,
       `π₀ + 1 = ${configuration.pi0 + 1}`,
@@ -306,14 +233,12 @@ export function renderSplitProjection({
 
     case "project-facets": {
       drawAxis();
-
       geometry.facets.forEach((facet) => {
         const currentFrom = lerpPoint(
           facet.segment[0],
           facet.projectedSegment[0],
           progress,
         );
-
         const currentTo = lerpPoint(
           facet.segment[1],
           facet.projectedSegment[1],
@@ -332,7 +257,6 @@ export function renderSplitProjection({
             0.35,
             true,
           );
-
           drawSegment(
             context,
             facet.segment[1],
@@ -357,35 +281,29 @@ export function renderSplitProjection({
           0.95,
         );
       });
-
       break;
     }
 
     case "project-polyhedron": {
       drawAxis();
-
-      const movingPolygon =
-        geometry.projectedVertices.map(
-          ({ source, target }) =>
-            lerpPoint(source, target, progress),
-        );
+      const movingPolygon = geometry.projectedVertices.map(
+        ({ source, target }) => lerpPoint(source, target, progress),
+      );
 
       if (configuration.showGuides) {
-        geometry.projectedVertices.forEach(
-          ({ source, target }) => {
-            drawSegment(
-              context,
-              source,
-              target,
-              tx,
-              ty,
-              accent,
-              1,
-              0.3,
-              true,
-            );
-          },
-        );
+        geometry.projectedVertices.forEach(({ source, target }) => {
+          drawSegment(
+            context,
+            source,
+            target,
+            tx,
+            ty,
+            accent,
+            1,
+            0.3,
+            true,
+          );
+        });
       }
 
       drawPolygon(
@@ -396,24 +314,14 @@ export function renderSplitProjection({
         "rgba(122, 112, 223, 0.18)",
         accent,
       );
-
       movingPolygon.forEach((point) => {
-        drawPoint(
-          context,
-          point,
-          tx,
-          ty,
-          accent,
-          4.5,
-        );
+        drawPoint(context, point, tx, ty, accent, 4.5);
       });
-
       break;
     }
 
     case "projected-strip": {
       drawAxis();
-
       drawSegment(
         context,
         geometry.projectedMinimum,
@@ -424,7 +332,6 @@ export function renderSplitProjection({
         8,
         0.32,
       );
-
       drawSegment(
         context,
         geometry.lowerAxisPoint,
@@ -436,37 +343,25 @@ export function renderSplitProjection({
         0.65,
       );
 
-      geometry.projectedVertices.forEach(
-        ({ target, value }) => {
-          drawPoint(
+      geometry.projectedVertices.forEach(({ target, value }) => {
+        drawPoint(context, target, tx, ty, accent, 5);
+        if (showLabels) {
+          drawText(
             context,
+            value.toFixed(2),
             target,
             tx,
             ty,
             accent,
-            5,
           );
-
-          if (showLabels) {
-            drawText(
-              context,
-              value.toFixed(2),
-              target,
-              tx,
-              ty,
-              accent,
-            );
-          }
-        },
-      );
-
+        }
+      });
       drawThresholdLabels();
       break;
     }
 
     case "lift-strip": {
       drawAxis();
-
       drawSegment(
         context,
         geometry.lowerAxisPoint,
@@ -477,7 +372,6 @@ export function renderSplitProjection({
         13,
         0.55 * (1 - progress),
       );
-
       drawPolygon(
         context,
         geometry.strip,
@@ -487,7 +381,6 @@ export function renderSplitProjection({
         stripColor,
         progress,
       );
-
       drawSegment(
         context,
         geometry.lowerBoundary[0],
@@ -499,7 +392,6 @@ export function renderSplitProjection({
         progress,
         true,
       );
-
       drawSegment(
         context,
         geometry.upperBoundary[0],
@@ -511,7 +403,6 @@ export function renderSplitProjection({
         progress,
         true,
       );
-
       drawThresholdLabels();
       break;
     }
@@ -525,7 +416,6 @@ export function renderSplitProjection({
         "rgba(121, 201, 192, 0.27)",
         INK,
       );
-
       drawPolygon(
         context,
         geometry.right,
@@ -534,7 +424,6 @@ export function renderSplitProjection({
         "rgba(212, 239, 119, 0.27)",
         INK,
       );
-
       drawPolygon(
         context,
         geometry.strip,
@@ -544,7 +433,6 @@ export function renderSplitProjection({
         stripColor,
         1 - progress,
       );
-
       break;
     }
 
@@ -558,7 +446,6 @@ export function renderSplitProjection({
         INK,
         0.7,
       );
-
       drawPolygon(
         context,
         geometry.right,
@@ -568,7 +455,6 @@ export function renderSplitProjection({
         INK,
         0.7,
       );
-
       drawPolygon(
         context,
         geometry.splitHull,
@@ -579,7 +465,6 @@ export function renderSplitProjection({
         progress,
         true,
       );
-
       break;
     }
   }
