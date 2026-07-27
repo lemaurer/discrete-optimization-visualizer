@@ -7,7 +7,8 @@ import type {
   SplitClosureStep,
   SplitClosureSpec,
 } from "@/engine/splitClosure";
-import type { Point2D, Scene } from "@/engine/types";
+import { computeSplitGeometry } from "@/engine/split";
+import type { Point2D, Primitive, Scene } from "@/engine/types";
 import type {
   VisualizationDefinition,
   VisualizationExample,
@@ -363,155 +364,537 @@ const finiteStages: VisualizationStage[] = [
   },
 ];
 
-const infiniteViewport: Scene["viewport"] = {
-  x: [-0.2, 2.2],
-  y: [-0.06, 0.62],
+interface InfiniteClosureState {
+  index: number;
+  alpha: number;
+  epsilon: number;
+}
+
+interface InfiniteSplitFamily {
+  id: "sum" | "x1" | "x2";
+  title: string;
+  projectionTitle: string;
+  axisLabel: string;
+  pi0: number;
+  color: string;
+  disjunction: string;
+  explanation: string;
+  apexCoordinate: (state: InfiniteClosureState) => number;
+}
+
+const infiniteSummaryViewport: Scene["viewport"] = {
+  x: [-0.16, 2.2],
+  y: [-0.035, 0.57],
 };
 
-function infiniteTriangle(height: number, index: number) {
+const infiniteSplitFamilies: InfiniteSplitFamily[] = [
+  {
+    id: "sum",
+    title: "Apply the sum split",
+    projectionTitle: "(s=x₁+x₂, y)",
+    axisLabel: "s=x₁+x₂",
+    pi0: 1,
+    color: "#f49a4a",
+    disjunction: "x₁+x₂≤1  ∨  x₁+x₂≥2",
+    explanation:
+      "Because s=x₁+x₂ is integral, the strip 1<s<2 contains no mixed-integer point.",
+    apexCoordinate: (state) => 2 * state.alpha,
+  },
+  {
+    id: "x1",
+    title: "Apply the first coordinate split",
+    projectionTitle: "(x₁,y)",
+    axisLabel: "x₁",
+    pi0: 0,
+    color: "#8f88dc",
+    disjunction: "x₁≤0  ∨  x₁≥1",
+    explanation:
+      "The apex has 0<x₁<1, but convexifying the two surviving sides still recreates points with y>0.",
+    apexCoordinate: (state) => state.alpha,
+  },
+  {
+    id: "x2",
+    title: "Apply the symmetric coordinate split",
+    projectionTitle: "(x₂,y)",
+    axisLabel: "x₂",
+    pi0: 0,
+    color: "#79c9c0",
+    disjunction: "x₂≤0  ∨  x₂≥1",
+    explanation:
+      "The same operation is required in the second integer coordinate; it produces the mirror-image split polyhedron.",
+    apexCoordinate: (state) => state.alpha,
+  },
+];
+
+function infiniteState(index: number): InfiniteClosureState {
+  const correction = 1 / (3 * 2 ** (index + 1));
+  const alpha =
+    index % 2 === 0
+      ? 2 / 3 - correction
+      : 2 / 3 + correction;
+
+  return {
+    index,
+    alpha,
+    epsilon: 1 / 2 ** (index + 1),
+  };
+}
+
+function formatFraction(value: number): string {
+  const knownFractions: Array<[number, string]> = [
+    [1 / 2, "1/2"],
+    [1 / 4, "1/4"],
+    [1 / 8, "1/8"],
+    [1 / 16, "1/16"],
+    [1 / 32, "1/32"],
+    [1 / 64, "1/64"],
+    [3 / 4, "3/4"],
+    [5 / 8, "5/8"],
+    [11 / 16, "11/16"],
+    [21 / 32, "21/32"],
+    [43 / 64, "43/64"],
+  ];
+
+  const match = knownFractions.find(
+    ([candidate]) => Math.abs(candidate - value) < 1e-9,
+  );
+
+  return match?.[1] ?? value.toFixed(4);
+}
+
+function infiniteProjectionVertices(
+  state: InfiniteClosureState,
+  family: InfiniteSplitFamily,
+): Point2D[] {
+  return [
+    [0, 0],
+    [2, 0],
+    [family.apexCoordinate(state), state.epsilon],
+  ];
+}
+
+function infiniteProjectionConstraints(
+  state: InfiniteClosureState,
+  family: InfiniteSplitFamily,
+): Scene["constraints"] {
   return polygonToConstraints(
-    [
-      [0, 0],
-      [2, 0],
-      [1, height],
-    ],
+    infiniteProjectionVertices(state, family),
     {
-      idPrefix: `infinite-closure-${index}`,
-      labelPrefix: `projected P${index} facet`,
-      colors: ["#79c9c0", "#8f88dc", "#f49a4a"],
+      idPrefix: `infinite-p${state.index}-${family.id}`,
+      labelPrefix: `${family.axisLabel}-projection facet`,
+      colors: ["#79c9c0", family.color, "#d4ef77"],
     },
   );
 }
 
-function infiniteScene(
-  height: number,
-  index: number,
-  overrides: Partial<Scene> = {},
-): Scene {
+function infiniteDetailViewport(
+  state: InfiniteClosureState,
+): Scene["viewport"] {
   return {
-    viewport: infiniteViewport,
-    constraints: infiniteTriangle(height, index),
+    x: [-0.12, 2.14],
+    y: [
+      -0.08 * state.epsilon,
+      Math.max(0.095, 1.3 * state.epsilon),
+    ],
+  };
+}
+
+function integerHullPrimitive(): Primitive {
+  return {
+    kind: "line",
+    from: [0, 0],
+    to: [2, 0],
+    label: "projected integer hull: y=0",
+    style: "cut",
+    color: "#f28b45",
+  };
+}
+
+function infiniteProjectionScene(
+  state: InfiniteClosureState,
+  family: InfiniteSplitFamily,
+  phase?: "lift-strip" | "remove-strip" | "split-hull",
+): Scene {
+  const viewport = infiniteDetailViewport(state);
+  const constraints = infiniteProjectionConstraints(state, family);
+  const primitives: Primitive[] = [
+    integerHullPrimitive(),
+    {
+      kind: "point",
+      at: [family.apexCoordinate(state), state.epsilon],
+      label: `apex of P${state.index}: y=${formatFraction(state.epsilon)}`,
+      style: "fractional",
+    },
+  ];
+
+  if (phase === "split-hull") {
+    const splitGeometry = computeSplitGeometry(
+      constraints,
+      viewport,
+      [1, 0],
+      family.pi0,
+    );
+    const survivingTop = splitGeometry.splitHull.reduce<Point2D>(
+      (best, point) => (point[1] > best[1] ? point : best),
+      splitGeometry.splitHull[0] ?? [0, 0],
+    );
+
+    primitives.push({
+      kind: "point",
+      at: survivingTop,
+      label: `this split still leaves y=${formatFraction(survivingTop[1])}>0`,
+      style: "optimum",
+    });
+  }
+
+  return {
+    viewport,
+    constraints,
+    primitives,
+    showGrid: true,
+    showConstraints: false,
+    showFeasibleRegion: phase === undefined || phase === "lift-strip",
+    showVertices: false,
+    showLattice: true,
+    latticeMode: "x-lines",
+    scaleMode: "stretch",
+    axisTicks: {
+      x: 0.5,
+      y: Math.max(state.epsilon / 4, 1 / 128),
+    },
+    axisLabels: {
+      x: family.axisLabel,
+      y: "y",
+    },
+    caption: {
+      primary: `Exact ${family.projectionTitle} projection`,
+      secondary: "horizontal coordinate is integral; y is continuous",
+    },
+    splitProjection: phase
+      ? {
+          pi: [1, 0],
+          pi0: family.pi0,
+          phase,
+          color: family.color,
+          stripColor: "#e27c89",
+        }
+      : undefined,
+  };
+}
+
+function infiniteSummaryVertices(
+  state: InfiniteClosureState,
+): Point2D[] {
+  return [
+    [0, 0],
+    [2, 0],
+    [2 * state.alpha, state.epsilon],
+  ];
+}
+
+function infiniteSummaryConstraints(
+  state: InfiniteClosureState,
+): Scene["constraints"] {
+  return polygonToConstraints(infiniteSummaryVertices(state), {
+    idPrefix: `infinite-summary-${state.index}`,
+    labelPrefix: `projected P${state.index} facet`,
+    colors: ["#79c9c0", "#8f88dc", "#f49a4a"],
+  });
+}
+
+function infiniteSummaryScene(
+  state: InfiniteClosureState,
+  options: {
+    previous?: InfiniteClosureState;
+    showGap?: boolean;
+    extraPrimitives?: Primitive[];
+  } = {},
+): Scene {
+  const apex: Point2D = [2 * state.alpha, state.epsilon];
+  const primitives: Primitive[] = [integerHullPrimitive()];
+
+  if (options.previous) {
+    primitives.unshift({
+      kind: "polygon",
+      points: infiniteSummaryVertices(options.previous),
+      label: `previous envelope P${options.previous.index}`,
+      style: "removed",
+    });
+  }
+
+  primitives.push({
+    kind: "point",
+    at: apex,
+    label: `C${state.index}: y=${formatFraction(state.epsilon)}>0`,
+    style: "fractional",
+  });
+
+  if (options.showGap) {
+    primitives.push({
+      kind: "line",
+      from: [apex[0], 0],
+      to: apex,
+      label: `remaining gap ε${state.index}=${formatFraction(state.epsilon)}`,
+      style: "constraint",
+      color: "#e27c89",
+    });
+  }
+
+  if (options.extraPrimitives) {
+    primitives.push(...options.extraPrimitives);
+  }
+
+  return {
+    viewport: infiniteSummaryViewport,
+    constraints: infiniteSummaryConstraints(state),
+    primitives,
     showGrid: true,
     showConstraints: false,
     showFeasibleRegion: true,
-    showVertices: true,
+    showVertices: false,
     showLattice: true,
     latticeMode: "x-lines",
+    scaleMode: "stretch",
+    axisTicks: {
+      x: 0.5,
+      y: 0.125,
+    },
     axisLabels: {
       x: "s=x₁+x₂",
       y: "y",
     },
     caption: {
-      primary: "Projected (s,y) plane",
+      primary: "Exact (s=x₁+x₂,y) projection",
       secondary: "x₁,x₂ integer; y continuous",
     },
-    primitives: [
-      {
-        kind: "line",
-        from: [0, 0],
-        to: [2, 0],
-        label: "projected integer hull",
-        style: "cut",
-        color: "#f28b45",
-      },
-      {
-        kind: "point",
-        at: [1, height],
-        label: height > 0 ? "fractional height remains" : "limit",
-        style: "fractional",
-      },
-    ],
-    ...overrides,
   };
 }
 
-const schematicHeights = [0.5, 0.25, 1 / 6, 0.125, 0.1, 1 / 12];
+function infiniteSplitStages(
+  input: InfiniteClosureState,
+  closureIndex: number,
+  family: InfiniteSplitFamily,
+  splitIndex: number,
+): VisualizationStage[] {
+  const prefix = `infinite-c${closureIndex}-${family.id}`;
+
+  return [
+    {
+      id: `${prefix}-projection`,
+      kicker: `Closure ${closureIndex} · Split ${splitIndex} · Exact projection`,
+      title: `Move to the ${family.projectionTitle} projection`,
+      description:
+        "The split variable is kept in this projection, so projecting and taking this split polyhedron commute. The triangle shown here is the exact projection of the current closure input.",
+      formula:
+        family.id === "sum"
+          ? `C${input.index} ↦ (2α${input.index}, ε${input.index})`
+          : `C${input.index} ↦ (α${input.index}, ε${input.index})`,
+      insight: family.explanation,
+      scene: infiniteProjectionScene(input, family),
+      navigation: {
+        closure: closureIndex,
+        split: splitIndex,
+      },
+    },
+    {
+      id: `${prefix}-strip`,
+      kicker: `Closure ${closureIndex} · Split ${splitIndex} · Forbidden strip`,
+      title: family.title,
+      description:
+        "The red strip is excluded by one valid split disjunction in the integer coordinate displayed horizontally.",
+      formula: family.disjunction,
+      insight:
+        "The fractional apex lies in the open strip, so this split removes it.",
+      scene: infiniteProjectionScene(input, family, "lift-strip"),
+      navigation: {
+        closure: closureIndex,
+        split: splitIndex,
+      },
+    },
+    {
+      id: `${prefix}-remove`,
+      kicker: `Closure ${closureIndex} · Split ${splitIndex} · Remove`,
+      title: "Keep the two closed sides",
+      description:
+        "Delete the open strip. The surviving left and right pieces are still disconnected before convexification.",
+      formula:
+        family.pi0 === 0
+          ? `${family.axisLabel}≤0  ∨  ${family.axisLabel}≥1`
+          : `${family.axisLabel}≤1  ∨  ${family.axisLabel}≥2`,
+      insight:
+        "No feasible mixed-integer point is removed, because the horizontal coordinate is integral.",
+      scene: infiniteProjectionScene(input, family, "remove-strip"),
+      navigation: {
+        closure: closureIndex,
+        split: splitIndex,
+      },
+    },
+    {
+      id: `${prefix}-hull`,
+      kicker: `Closure ${closureIndex} · Split ${splitIndex} · Convexify`,
+      title: "Convexification brings back positive-y points",
+      description:
+        "The split polyhedron is the convex hull of the two surviving pieces. The highlighted top point has y>0, so this individual split is not enough to obtain the integer hull.",
+      formula: "P⁽π,π₀⁾ = conv(P≤ ∪ P≥)",
+      insight:
+        "This is the key mechanism: removing a strip cuts the old apex, but convexification creates a lower fractional envelope instead of collapsing everything to y=0.",
+      scene: infiniteProjectionScene(input, family, "split-hull"),
+      navigation: {
+        closure: closureIndex,
+        split: splitIndex,
+        milestone: "split",
+      },
+    },
+  ];
+}
+
+function infiniteClosureStages(
+  closureIndex: number,
+): VisualizationStage[] {
+  const input = infiniteState(closureIndex - 1);
+  const output = infiniteState(closureIndex);
+
+  return [
+    {
+      id: `infinite-closure-${closureIndex}-start`,
+      kicker: `Infinite rank · Split closure ${closureIndex}`,
+      title: `Start from the exact polyhedron P${input.index}`,
+      description:
+        "A full split closure intersects the split polyhedra obtained from every integral split. For this Cook–Kannan–Schrijver simplex, the sum split and the two coordinate splits below generate the facets of the next exact closure.",
+      formula:
+        `C${input.index}=(α${input.index},α${input.index},ε${input.index})` +
+        `,  ε${input.index}=${formatFraction(input.epsilon)}`,
+      insight:
+        "Use Detail to see the three decisive splits. Use Splits to jump directly to their convexified outputs.",
+      scene: infiniteSummaryScene(input, { showGap: true }),
+      navigation: { closure: closureIndex },
+    },
+    ...infiniteSplitFamilies.flatMap((family, splitOffset) =>
+      infiniteSplitStages(
+        input,
+        closureIndex,
+        family,
+        splitOffset + 1,
+      ),
+    ),
+    {
+      id: `infinite-closure-${closureIndex}-intersection`,
+      kicker: `Infinite rank · Closure ${closureIndex} · Intersect all splits`,
+      title: "The complete closure is smaller — but still three-dimensional",
+      description:
+        "Intersecting all split polyhedra gives the next exact simplex. The old projected envelope is shown in red and the new one remains filled.",
+      formula:
+        `α${closureIndex}=1−α${closureIndex - 1}/2,  ` +
+        `ε${closureIndex}=ε${closureIndex - 1}/2`,
+      insight:
+        `The apex moves from y=${formatFraction(input.epsilon)} to y=${formatFraction(output.epsilon)} rather than to y=0.`,
+      scene: infiniteSummaryScene(output, {
+        previous: input,
+      }),
+      navigation: { closure: closureIndex },
+    },
+    {
+      id: `infinite-closure-${closureIndex}-gap`,
+      kicker: `Infinite rank · Closure ${closureIndex} · Why it is not finished`,
+      title: `P${closureIndex} still contains a fractional apex`,
+      description:
+        "The orange base is the projected mixed-integer hull. The vertical segment measures the positive gap that survives the entire split closure.",
+      formula:
+        `ε${closureIndex}=${formatFraction(output.epsilon)}>0  ⇒  P${closureIndex}≠conv(F)`,
+      insight:
+        "A new closure can halve this gap again, but no finite number of halvings makes it exactly zero.",
+      scene: infiniteSummaryScene(output, {
+        showGap: true,
+      }),
+      navigation: {
+        closure: closureIndex,
+        milestone: "closure",
+      },
+    },
+  ];
+}
+
+const displayedInfiniteClosures = 5;
+const initialInfiniteState = infiniteState(0);
+const finalDisplayedInfiniteState = infiniteState(displayedInfiniteClosures);
+
+const convergencePrimitives: Primitive[] = [];
+for (let index = 0; index <= displayedInfiniteClosures; index += 1) {
+  const state = infiniteState(index);
+  const apex: Point2D = [2 * state.alpha, state.epsilon];
+
+  convergencePrimitives.push({
+    kind: "point",
+    at: apex,
+    label: `C${index}`,
+    style: index === displayedInfiniteClosures ? "optimum" : "fractional",
+  });
+
+  if (index > 0) {
+    const previous = infiniteState(index - 1);
+    convergencePrimitives.push({
+      kind: "line",
+      from: [2 * previous.alpha, previous.epsilon],
+      to: apex,
+      label: "",
+      style: "objective",
+      color: "#8f88dc",
+    });
+  }
+}
 
 const infiniteStages: VisualizationStage[] = [
   {
     id: "infinite-initial",
     kicker: "Infinite rank · Lecture Example 54",
-    title: "Project the mixed-integer example onto (s,y)",
+    title: "Start from the exact Cook–Kannan–Schrijver simplex",
     description:
-      "For s=x₁+x₂, the LP relaxation projects to the triangle 2y≤s≤2−2y. The integer hull projects to its base y=0.",
+      "The relaxation is the simplex with base points (0,0,0), (2,0,0), (0,2,0) and fractional apex C₀=(1/2,1/2,1/2). In the (s=x₁+x₂,y) projection, the integer hull is only the base y=0.",
     formula:
-      "F = {(x₁,x₂,y)∈ℤ²₊×ℝ₊ : x₁≥y, x₂≥y, x₁+x₂+2y≤2}",
+      "P⁰={x₁,x₂,y≥0 : x₁≥y, x₂≥y, x₁+x₂+2y≤2}",
     insight:
-      "The lecture notes state that no finite number of split closures reaches conv(F).",
-    scene: infiniteScene(schematicHeights[0], 0),
+      "The old fixed-apex schematic has been replaced by the exact closure family and exact projected apex coordinates.",
+    scene: infiniteSummaryScene(initialInfiniteState, {
+      showGap: true,
+    }),
   },
-  ...schematicHeights.slice(1).flatMap((height, offset) => {
-    const closureIndex = offset + 1;
-    const previousHeight = schematicHeights[offset];
-    return [
-      {
-        id: `infinite-closure-${closureIndex}-transition`,
-        kicker: `Infinite rank · Closure ${closureIndex}`,
-        title: "The fractional envelope becomes thinner",
-        description:
-          "Another split closure removes part of the positive-y region, but a fractional point with y>0 survives.",
-        formula: `P${closureIndex} = (P${closureIndex - 1})ˢᵖˡⁱᵗ`,
-        insight:
-          "The two-dimensional envelopes are a normalized schematic of the projection, not claimed exact closure coordinates.",
-        scene: infiniteScene(height, closureIndex, {
-          primitives: [
-            {
-              kind: "polygon",
-              points: [
-                [0, 0],
-                [2, 0],
-                [1, previousHeight],
-              ],
-              label: `P${closureIndex - 1}`,
-              style: "removed",
-            },
-            {
-              kind: "line",
-              from: [0, 0],
-              to: [2, 0],
-              label: "projected integer hull",
-              style: "cut",
-              color: "#f28b45",
-            },
-            {
-              kind: "point",
-              at: [1, height],
-              label: "still above y=0",
-              style: "fractional",
-            },
-          ],
-        }),
-        navigation: { closure: closureIndex },
-      },
-      {
-        id: `infinite-closure-${closureIndex}-result`,
-        kicker: `Infinite rank · Closure ${closureIndex} result`,
-        title: `P${closureIndex} still differs from the integer hull`,
-        description:
-          "The closure is tighter, yet its projected region still contains positive-y fractional points.",
-        formula: `P${closureIndex} ≠ conv(F)`,
-        insight:
-          "No matter which finite closure index is chosen, the lecture counterexample has not reached the integer hull.",
-        scene: infiniteScene(height, closureIndex),
-        navigation: {
-          closure: closureIndex,
-          milestone: "closure" as const,
-        },
-      },
-    ] satisfies VisualizationStage[];
-  }),
+  ...Array.from(
+    { length: displayedInfiniteClosures },
+    (_, offset) => offset + 1,
+  ).flatMap(infiniteClosureStages),
+  {
+    id: "infinite-convergence-formula",
+    kicker: "Infinite rank · Exact recurrence",
+    title: "Every closure halves the height, but never reaches zero",
+    description:
+      "The displayed apex path is exact. Its horizontal coordinate oscillates toward 4/3, while its continuous height is εₖ=2⁻⁽ᵏ⁺¹⁾.",
+    formula:
+      "αₖ=2/3+(−1)ᵏ⁺¹/(3·2ᵏ⁺¹),   εₖ=1/2ᵏ⁺¹",
+    insight:
+      "For every finite k, εₖ is strictly positive. Therefore Pᵏ still contains a point outside the mixed-integer hull y=0.",
+    scene: infiniteSummaryScene(finalDisplayedInfiniteState, {
+      showGap: true,
+      extraPrimitives: convergencePrimitives,
+    }),
+    navigation: {
+      closure: displayedInfiniteClosures,
+      milestone: "closure",
+    },
+  },
   {
     id: "infinite-never-finishes",
     kicker: "Infinite rank · Conclusion",
-    title: "There is no final finite closure",
+    title: "There is no final finite split closure",
     description:
-      "The regions approach the projected integer hull y=0, but the lecture example has positive split rank beyond every finite number of rounds.",
+      "Each round applies genuine split disjunctions and produces a strictly tighter exact simplex, but its fractional apex always has y>0.",
     formula: "(Pˢᵖˡⁱᵗ)ᵏ ≠ conv(F)  for every finite k",
     insight:
-      "The obstruction is a maximal lattice-free set in the y=0 slice that is too large to be covered by splits.",
-    scene: infiniteScene(schematicHeights[schematicHeights.length - 1], schematicHeights.length),
+      "Geometrically, the maximal lattice-free triangle in the y=0 integer-variable slice cannot be captured by finitely many rounds of split strips.",
+    scene: infiniteSummaryScene(finalDisplayedInfiniteState, {
+      showGap: true,
+    }),
     navigation: {
-      closure: schematicHeights.length,
+      closure: displayedInfiniteClosures,
       milestone: "closure",
     },
   },
@@ -539,16 +922,17 @@ const infiniteExample: VisualizationExample = {
   id: "infinite-rank",
   title: "Infinite rank — Lecture Example 54",
   description:
-    "Select the mixed-integer counterexample from the lecture notes and inspect closure snapshots that never reach the integer hull at a finite index.",
+    "Inspect the exact sum and coordinate splits inside every displayed closure, then see the positive continuous height that remains after their full intersection.",
   stages: infiniteStages,
   proof: {
-    title: "What the lecture counterexample establishes",
+    title: "Why no finite split closure reaches the integer hull",
     steps: [
-      "The variables x₁ and x₂ are nonnegative integers, while y is nonnegative and continuous.",
-      "The LP relaxation contains points with y>0, but every feasible mixed-integer point lies in the slice y=0.",
-      "The notes state that conv(F) differs from the kth split closure for every finite k.",
-      "Informally, the maximal lattice-free set in the y=0 slice cannot be covered by splits strongly enough in finitely many rounds.",
-      "The displayed shrinking triangles are schematic projected envelopes used to visualize this infinite-rank conclusion.",
+      "The relaxation is the simplex P(3,1/2,1/2) with fractional apex C₀=(1/2,1/2,1/2).",
+      "Inside every closure, the sum split and the two coordinate splits cut the current apex and are convexified separately.",
+      "Their exact intersection is another simplex P(3,αₖ,εₖ), with εₖ=εₖ₋₁/2.",
+      "Consequently εₖ=1/2ᵏ⁺¹ is positive for every finite k.",
+      "The mixed-integer hull lies in y=0, whereas Pᵏ contains the apex (αₖ,αₖ,εₖ) with y>0.",
+      "Hence Pᵏ differs from conv(F) for every finite k.",
     ],
   },
 };
@@ -562,10 +946,11 @@ const visualization: VisualizationDefinition = {
   description:
     "Move through individual splits, completed split closures, and repeated closure rounds at different levels of detail.",
   difficulty: "Advanced",
-  duration: 22,
+  duration: 32,
   accent: "#f49a4a",
   controls: {
     constraints: false,
+    grid: true,
     lattice: true,
     vertices: true,
     labels: true,
