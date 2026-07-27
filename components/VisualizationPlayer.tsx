@@ -16,6 +16,7 @@ import type {
   VisualizationNavigationMode,
 } from "@/visualizations/types";
 import { VisualizationCanvas } from "./VisualizationCanvas";
+import { VisualizationCanvas3D } from "./VisualizationCanvas3D";
 
 const DETAIL_STAGE_DURATION = 7500;
 const SUMMARY_STAGE_DURATION = 1500;
@@ -61,10 +62,6 @@ export function VisualizationPlayer({
   const [navigationMode, setNavigationMode] =
     useState<VisualizationNavigationMode>("detail");
 
-  /**
-   * `null` means "follow the current stage default". Once the user touches a
-   * switch, its boolean value remains authoritative across stages and examples.
-   */
   const [gridOverride, setGridOverride] = useState<boolean | null>(null);
   const [latticeOverride, setLatticeOverride] = useState<boolean | null>(null);
   const [verticesOverride, setVerticesOverride] = useState<boolean | null>(null);
@@ -86,6 +83,7 @@ export function VisualizationPlayer({
 
   const boundedStageIndex = Math.min(stageIndex, stages.length - 1);
   const stage = stages[boundedStageIndex];
+  const isThreeDimensional = Boolean(stage.scene.scene3D);
 
   const showGrid = gridOverride ?? stage.scene.showGrid !== false;
   const showLattice = latticeOverride ?? Boolean(stage.scene.showLattice);
@@ -120,8 +118,9 @@ export function VisualizationPlayer({
       .filter(({ item }) => item.navigation?.milestone === milestone)
       .map(({ index }) => index);
 
-    const indices = new Set<number>([0, ...selected, stages.length - 1]);
-    return [...indices].sort((a, b) => a - b);
+    return [...new Set([0, ...selected, stages.length - 1])].sort(
+      (left, right) => left - right,
+    );
   }, [navigationMode, stages]);
 
   const currentNavigationPosition = Math.max(
@@ -338,7 +337,7 @@ export function VisualizationPlayer({
           <div className="visual-toolbar">
             <div className="view-tabs" aria-label="Visualization view">
               <button className="view-tab view-tab--active" type="button">
-                Geometry
+                {isThreeDimensional ? "3D geometry" : "Geometry"}
               </button>
               <button
                 className="view-tab"
@@ -397,25 +396,37 @@ export function VisualizationPlayer({
               >
                 +
               </button>
-              <button aria-label="Reset view" onClick={() => setZoom(1)} type="button">
+              <button aria-label="Reset zoom" onClick={() => setZoom(1)} type="button">
                 ↺
               </button>
             </div>
           </div>
 
           <div className="canvas-area">
-            <VisualizationCanvas
-              animationProgress={renderedProgress}
-              enabledConstraints={enabledConstraints}
-              onVertexFocus={setFocusedVertex}
-              scene={stage.scene}
-              showGrid={showGrid}
-              showLabels={showLabels}
-              showLattice={showLattice}
-              showVertices={showVertices}
-              zoom={zoom}
-            />
-            {focusedVertex && (
+            {isThreeDimensional ? (
+              <VisualizationCanvas3D
+                animationProgress={renderedProgress}
+                scene={stage.scene}
+                showGrid={showGrid}
+                showLabels={showLabels}
+                showLattice={showLattice}
+                showVertices={showVertices}
+                zoom={zoom}
+              />
+            ) : (
+              <VisualizationCanvas
+                animationProgress={renderedProgress}
+                enabledConstraints={enabledConstraints}
+                onVertexFocus={setFocusedVertex}
+                scene={stage.scene}
+                showGrid={showGrid}
+                showLabels={showLabels}
+                showLattice={showLattice}
+                showVertices={showVertices}
+                zoom={zoom}
+              />
+            )}
+            {!isThreeDimensional && focusedVertex && (
               <div className="vertex-inspector">
                 <p>Vertex {formatPoint(focusedVertex.point)}</p>
                 <span>
@@ -429,50 +440,52 @@ export function VisualizationPlayer({
             )}
           </div>
 
-          {controls.constraints !== false && stage.scene.constraints.length > 0 && (
-            <div className="constraint-strip">
-              <div className="constraint-title">
-                <span>Constraint set</span>
-                <button
-                  onClick={() =>
-                    setEnabledConstraints(
-                      new Set(
-                        stage.scene.constraints.map((constraint) => constraint.id),
-                      ),
-                    )
-                  }
-                  type="button"
-                >
-                  Reset
-                </button>
+          {!isThreeDimensional &&
+            controls.constraints !== false &&
+            stage.scene.constraints.length > 0 && (
+              <div className="constraint-strip">
+                <div className="constraint-title">
+                  <span>Constraint set</span>
+                  <button
+                    onClick={() =>
+                      setEnabledConstraints(
+                        new Set(
+                          stage.scene.constraints.map((constraint) => constraint.id),
+                        ),
+                      )
+                    }
+                    type="button"
+                  >
+                    Reset
+                  </button>
+                </div>
+                <div className="constraint-chips">
+                  {stage.scene.constraints.map((constraint) => {
+                    const enabled = enabledConstraints.has(constraint.id);
+                    return (
+                      <button
+                        aria-pressed={enabled}
+                        className={
+                          enabled
+                            ? "constraint-chip constraint-chip--active"
+                            : "constraint-chip"
+                        }
+                        key={constraint.id}
+                        onClick={() => toggleConstraint(constraint.id)}
+                        style={
+                          { "--constraint-color": constraint.color } as CSSProperties
+                        }
+                        type="button"
+                      >
+                        <i />
+                        <span>{constraint.label}</span>
+                        <strong>{enabled ? "×" : "+"}</strong>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="constraint-chips">
-                {stage.scene.constraints.map((constraint) => {
-                  const enabled = enabledConstraints.has(constraint.id);
-                  return (
-                    <button
-                      aria-pressed={enabled}
-                      className={
-                        enabled
-                          ? "constraint-chip constraint-chip--active"
-                          : "constraint-chip"
-                      }
-                      key={constraint.id}
-                      onClick={() => toggleConstraint(constraint.id)}
-                      style={
-                        { "--constraint-color": constraint.color } as CSSProperties
-                      }
-                      type="button"
-                    >
-                      <i />
-                      <span>{constraint.label}</span>
-                      <strong>{enabled ? "×" : "+"}</strong>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+            )}
         </section>
 
         <aside className="explanation-panel">

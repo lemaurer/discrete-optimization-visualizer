@@ -1,4 +1,5 @@
 export type Point2D = [number, number];
+export type Point3D = [number, number, number];
 
 export interface Constraint {
   id: string;
@@ -99,6 +100,89 @@ export interface SplitMembershipScene {
   candidateColor?: string;
 }
 
+export type MeshStyle3D =
+  | "solid"
+  | "ghost"
+  | "removed"
+  | "survivor"
+  | "integer-hull"
+  | "split-hull";
+
+export interface Mesh3D {
+  id: string;
+  vertices: Point3D[];
+  faces: number[][];
+  label?: string;
+  color?: string;
+  edgeColor?: string;
+  opacity?: number;
+  style?: MeshStyle3D;
+  /** Optional starting geometry for an animated interpolation. */
+  fromVertices?: Point3D[];
+}
+
+export interface PlanePatch3D {
+  id: string;
+  points: Point3D[];
+  label?: string;
+  color?: string;
+  opacity?: number;
+  dashed?: boolean;
+}
+
+export interface Segment3D {
+  id: string;
+  from: Point3D;
+  to: Point3D;
+  label?: string;
+  color?: string;
+  width?: number;
+  dashed?: boolean;
+  animate?: boolean;
+}
+
+export interface Marker3D {
+  id: string;
+  at: Point3D;
+  label?: string;
+  color?: string;
+  style?: "vertex" | "fractional" | "integer" | "optimum";
+  radius?: number;
+  animateFrom?: Point3D;
+}
+
+export interface Scene3D {
+  bounds: {
+    x: [number, number];
+    y: [number, number];
+    z: [number, number];
+  };
+  axisLabels?: {
+    x: string;
+    y: string;
+    z: string;
+  };
+  camera?: {
+    yaw?: number;
+    pitch?: number;
+    distance?: number;
+  };
+  /** Visual-only multiplier for the third coordinate. */
+  verticalScale?: number;
+  meshes?: Mesh3D[];
+  planes?: PlanePatch3D[];
+  segments?: Segment3D[];
+  markers?: Marker3D[];
+  showAxes?: boolean;
+  showGround?: boolean;
+  showIntegerLattice?: boolean;
+  integerAxes?: Array<"x" | "y" | "z">;
+  caption?: {
+    primary?: string;
+    secondary?: string;
+  };
+}
+
 export interface Scene {
   viewport: {
     x: [number, number];
@@ -152,4 +236,5 @@ export interface Scene {
 
   splitProjection?: SplitProjectionScene;
   splitMembership?: SplitMembershipScene;
+  scene3D?: Scene3D;
 }
