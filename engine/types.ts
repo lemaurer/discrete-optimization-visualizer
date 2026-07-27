@@ -73,6 +73,27 @@ export interface SplitProjectionScene {
   stripColor?: string;
 }
 
+export type SplitMembershipPhase =
+  | "setup"
+  | "witness-region"
+  | "overlap"
+  | "construct"
+  | "slacks"
+  | "conclusion";
+
+export interface SplitMembershipScene {
+  pi: Point2D;
+  pi0: number;
+  x: Point2D;
+  y?: Point2D;
+  phase: SplitMembershipPhase;
+  focusConstraintId?: string;
+  stripColor?: string;
+  witnessColor?: string;
+  overlapColor?: string;
+  candidateColor?: string;
+}
+
 export interface Scene {
   viewport: {
     x: [number, number];
@@ -125,4 +146,5 @@ export interface Scene {
   };
 
   splitProjection?: SplitProjectionScene;
+  splitMembership?: SplitMembershipScene;
 }
