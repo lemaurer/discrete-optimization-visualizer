@@ -167,6 +167,8 @@ export interface Scene3D {
     pitch?: number;
     distance?: number;
   };
+  /** Visual-only multiplier for the third coordinate. */
+  verticalScale?: number;
   meshes?: Mesh3D[];
   planes?: PlanePatch3D[];
   segments?: Segment3D[];
