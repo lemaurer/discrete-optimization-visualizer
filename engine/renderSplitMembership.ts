@@ -1,10 +1,18 @@
 import {
+  buildWitnessConstraints,
   computeSplitMembershipGeometry,
+  constraintSlack,
   projectPointToConstraint,
 } from "./splitMembership";
 import {
   lerpPoint,
+  pointOnPiAxis,
+  projectPointOntoPi,
 } from "./split";
+import {
+  clipToConstraints,
+  constraintLine,
+} from "./geometry";
 import type {
   Constraint,
   Point2D,
@@ -41,6 +49,15 @@ function format(value: number): string {
     : rounded.toFixed(2);
 }
 
+function centroid(points: Point2D[]): Point2D {
+  if (!points.length) return [0, 0];
+  const total = points.reduce<Point2D>(
+    (sum, point) => [sum[0] + point[0], sum[1] + point[1]],
+    [0, 0],
+  );
+  return [total[0] / points.length, total[1] / points.length];
+}
+
 function drawPolygon(
   context: CanvasRenderingContext2D,
   points: Point2D[],
@@ -57,11 +74,8 @@ function drawPolygon(
   context.globalAlpha = alpha;
   context.beginPath();
   points.forEach((point, index) => {
-    if (index === 0) {
-      context.moveTo(tx(point[0]), ty(point[1]));
-    } else {
-      context.lineTo(tx(point[0]), ty(point[1]));
-    }
+    if (index === 0) context.moveTo(tx(point[0]), ty(point[1]));
+    else context.lineTo(tx(point[0]), ty(point[1]));
   });
   if (points.length > 2) {
     context.closePath();
@@ -95,6 +109,40 @@ function drawSegment(
   context.moveTo(tx(from[0]), ty(from[1]));
   context.lineTo(tx(to[0]), ty(to[1]));
   context.stroke();
+  context.restore();
+}
+
+function drawArrow(
+  context: CanvasRenderingContext2D,
+  from: Point2D,
+  to: Point2D,
+  tx: (value: number) => number,
+  ty: (value: number) => number,
+  color: string,
+  width = 3,
+  alpha = 1,
+) {
+  drawSegment(context, from, to, tx, ty, color, width, alpha);
+
+  const start: Point2D = [tx(from[0]), ty(from[1])];
+  const end: Point2D = [tx(to[0]), ty(to[1])];
+  const angle = Math.atan2(end[1] - start[1], end[0] - start[0]);
+
+  context.save();
+  context.globalAlpha = alpha;
+  context.fillStyle = color;
+  context.beginPath();
+  context.moveTo(end[0], end[1]);
+  context.lineTo(
+    end[0] - 10 * Math.cos(angle - 0.45),
+    end[1] - 10 * Math.sin(angle - 0.45),
+  );
+  context.lineTo(
+    end[0] - 10 * Math.cos(angle + 0.45),
+    end[1] - 10 * Math.sin(angle + 0.45),
+  );
+  context.closePath();
+  context.fill();
   context.restore();
 }
 
@@ -136,6 +184,36 @@ function drawText(
   context.restore();
 }
 
+function drawScreenPanel(
+  context: CanvasRenderingContext2D,
+  lines: Array<{ text: string; color?: string; strong?: boolean }>,
+  side: "left" | "right" = "right",
+) {
+  const width = 330;
+  const lineHeight = 24;
+  const height = 24 + lines.length * lineHeight;
+  const canvasWidth = context.canvas.clientWidth;
+  const x = side === "right" ? Math.max(12, canvasWidth - width - 16) : 16;
+  const y = 16;
+
+  context.save();
+  context.fillStyle = "rgba(245, 242, 232, 0.96)";
+  context.strokeStyle = "rgba(16, 32, 42, 0.24)";
+  context.lineWidth = 1;
+  context.beginPath();
+  context.roundRect(x, y, width, height, 7);
+  context.fill();
+  context.stroke();
+
+  lines.forEach((line, index) => {
+    context.font = `${line.strong ? "600 " : ""}11px var(--font-geist-mono), monospace`;
+    context.fillStyle = line.color ?? INK;
+    context.textAlign = "left";
+    context.fillText(line.text, x + 14, y + 24 + index * lineHeight);
+  });
+  context.restore();
+}
+
 function drawConstraintSlack(
   context: CanvasRenderingContext2D,
   point: Point2D,
@@ -147,17 +225,7 @@ function drawConstraintSlack(
   showLabels: boolean,
 ) {
   const boundaryPoint = projectPointToConstraint(point, constraint);
-  drawSegment(
-    context,
-    point,
-    boundaryPoint,
-    tx,
-    ty,
-    color,
-    3,
-    0.95,
-    true,
-  );
+  drawSegment(context, point, boundaryPoint, tx, ty, color, 3, 0.95, true);
 
   if (showLabels) {
     const midpoint: Point2D = [
@@ -191,7 +259,7 @@ function drawSlackPanel(
   const y = 16;
 
   context.save();
-  context.fillStyle = "rgba(245, 242, 232, 0.95)";
+  context.fillStyle = "rgba(245, 242, 232, 0.96)";
   context.strokeStyle = "rgba(16, 32, 42, 0.24)";
   context.lineWidth = 1;
   context.beginPath();
@@ -211,9 +279,7 @@ function drawSlackPanel(
 
   tests.forEach((test, index) => {
     const rowY = y + 50 + index * rowHeight;
-    const focused =
-      !focusConstraintId ||
-      test.constraint.id === focusConstraintId;
+    const focused = !focusConstraintId || test.constraint.id === focusConstraintId;
 
     if (test.constraint.id === focusConstraintId) {
       context.fillStyle = "rgba(242, 139, 69, 0.12)";
@@ -232,13 +298,9 @@ function drawSlackPanel(
     const barStart = x + 119;
     const barWidth = 112;
     const yWidth =
-      (Math.max(0, test.slackAtY) / maxValue) *
-      barWidth *
-      progress;
+      (Math.max(0, test.slackAtY) / maxValue) * barWidth * progress;
     const allowanceWidth =
-      (Math.max(0, test.allowance) / maxValue) *
-      barWidth *
-      progress;
+      (Math.max(0, test.allowance) / maxValue) * barWidth * progress;
 
     context.fillStyle = "rgba(143, 136, 220, 0.18)";
     context.fillRect(barStart, rowY - 4, barWidth, 7);
@@ -292,97 +354,423 @@ export function renderSplitMembership({
   const witnessColor = configuration.witnessColor ?? WITNESS;
   const overlapColor = configuration.overlapColor ?? OVERLAP;
   const candidateColor = configuration.candidateColor ?? RIGHT;
+  const normSquared =
+    configuration.pi[0] ** 2 + configuration.pi[1] ** 2;
 
-  drawPolygon(
-    context,
-    geometry.split.strip,
-    tx,
-    ty,
-    "rgba(226, 124, 137, 0.16)",
-    stripColor,
-    configuration.phase === "setup" ? 0.35 + 0.5 * progress : 0.5,
-  );
-  drawSegment(
-    context,
-    geometry.split.lowerBoundary[0],
-    geometry.split.lowerBoundary[1],
-    tx,
-    ty,
-    stripColor,
-    2.2,
-    0.9,
-    true,
-  );
-  drawSegment(
-    context,
-    geometry.split.upperBoundary[0],
-    geometry.split.upperBoundary[1],
-    tx,
-    ty,
-    stripColor,
-    2.2,
-    0.9,
-    true,
-  );
+  const projectedX = projectPointOntoPi(configuration.x, configuration.pi);
+  const lowerAxisPoint = pointOnPiAxis(configuration.pi0, configuration.pi);
+  const upperAxisPoint = pointOnPiAxis(configuration.pi0 + 1, configuration.pi);
+  const lowerThroughX: Point2D = [
+    configuration.x[0] - (geometry.alpha / normSquared) * configuration.pi[0],
+    configuration.x[1] - (geometry.alpha / normSquared) * configuration.pi[1],
+  ];
 
-  if (showLabels) {
-    drawText(
-      context,
-      `πᵀx = ${configuration.pi0}`,
-      [configuration.pi0 + 0.03, scene.viewport.y[1] - 0.15],
-      tx,
-      ty,
-      stripColor,
-    );
-    drawText(
-      context,
-      `πᵀx = ${configuration.pi0 + 1}`,
-      [configuration.pi0 + 1.03, scene.viewport.y[1] - 0.15],
-      tx,
-      ty,
-      stripColor,
-    );
-  }
-
-  const showWitnessRegion =
-    configuration.phase === "witness-region" ||
-    configuration.phase === "overlap" ||
-    configuration.phase === "construct" ||
-    configuration.phase === "slacks" ||
-    configuration.phase === "conclusion";
-
-  if (showWitnessRegion) {
+  const drawStrip = (alpha = 0.5) => {
     drawPolygon(
       context,
-      geometry.witnessRegion,
+      geometry.split.strip,
       tx,
       ty,
-      "rgba(121, 201, 192, 0.20)",
-      witnessColor,
-      configuration.phase === "witness-region" ? progress : 0.85,
+      "rgba(226, 124, 137, 0.16)",
+      stripColor,
+      alpha,
+    );
+    drawSegment(
+      context,
+      geometry.split.lowerBoundary[0],
+      geometry.split.lowerBoundary[1],
+      tx,
+      ty,
+      stripColor,
+      2.2,
+      0.9,
       true,
     );
-  }
-
-  const showOverlap =
-    configuration.phase === "overlap" ||
-    configuration.phase === "construct" ||
-    configuration.phase === "slacks" ||
-    configuration.phase === "conclusion";
-
-  if (showOverlap) {
-    drawPolygon(
+    drawSegment(
       context,
-      geometry.split.right,
+      geometry.split.upperBoundary[0],
+      geometry.split.upperBoundary[1],
       tx,
       ty,
-      "rgba(143, 136, 220, 0.08)",
+      stripColor,
+      2.2,
+      0.9,
+      true,
+    );
+
+    if (showLabels) {
+      drawText(
+        context,
+        `πᵀu = ${configuration.pi0}`,
+        [lowerThroughX[0] + 0.04, scene.viewport.y[1] - 0.15],
+        tx,
+        ty,
+        stripColor,
+      );
+      const upperLabelPoint: Point2D = [
+        lowerThroughX[0] + configuration.pi[0] / normSquared + 0.04,
+        scene.viewport.y[1] - 0.15,
+      ];
+      drawText(
+        context,
+        `πᵀu = ${configuration.pi0 + 1}`,
+        upperLabelPoint,
+        tx,
+        ty,
+        stripColor,
+      );
+    }
+  };
+
+  const drawX = () => {
+    drawPoint(context, configuration.x, tx, ty, stripColor, 8);
+    if (showLabels) {
+      drawText(
+        context,
+        "x",
+        [configuration.x[0] + 0.1, configuration.x[1] + 0.18],
+        tx,
+        ty,
+        stripColor,
+      );
+    }
+  };
+
+  const drawCoordinateAxis = (projectionProgress = 1) => {
+    drawSegment(
+      context,
+      geometry.split.axis[0],
+      geometry.split.axis[1],
+      tx,
+      ty,
       candidateColor,
-      configuration.phase === "overlap" ? 0.28 + 0.3 * progress : 0.32,
+      3,
+      0.82,
+      true,
+    );
+    drawSegment(
+      context,
+      configuration.x,
+      projectedX,
+      tx,
+      ty,
+      candidateColor,
+      1.5,
+      0.55,
       true,
     );
 
-    if (geometry.witnessExists) {
+    const movingProjection = lerpPoint(
+      configuration.x,
+      projectedX,
+      projectionProgress,
+    );
+    drawPoint(context, movingProjection, tx, ty, candidateColor, 6);
+    drawPoint(context, lowerAxisPoint, tx, ty, stripColor, 5);
+    drawPoint(context, upperAxisPoint, tx, ty, stripColor, 5);
+
+    if (showLabels && projectionProgress > 0.7) {
+      drawText(
+        context,
+        `πᵀx = ${format(geometry.xCoordinate)}`,
+        [projectedX[0], projectedX[1] + 0.22],
+        tx,
+        ty,
+        candidateColor,
+        "center",
+      );
+      drawText(
+        context,
+        `π₀=${configuration.pi0}`,
+        [lowerAxisPoint[0], lowerAxisPoint[1] - 0.2],
+        tx,
+        ty,
+        stripColor,
+        "center",
+      );
+      drawText(
+        context,
+        `π₀+1=${configuration.pi0 + 1}`,
+        [upperAxisPoint[0], upperAxisPoint[1] - 0.2],
+        tx,
+        ty,
+        stripColor,
+        "center",
+      );
+    }
+  };
+
+  const focusIndex = Math.max(
+    0,
+    scene.constraints.findIndex(
+      (constraint) => constraint.id === configuration.focusConstraintId,
+    ),
+  );
+  const focusConstraint = scene.constraints[focusIndex];
+  const witnessConstraints = buildWitnessConstraints(
+    scene.constraints,
+    configuration.x,
+    geometry.alpha,
+  );
+  const focusWitnessConstraint = witnessConstraints[focusIndex];
+
+  switch (configuration.phase) {
+    case "setup": {
+      drawStrip(0.35 + 0.5 * progress);
+      drawX();
+      break;
+    }
+
+    case "split-coordinate": {
+      drawStrip(0.28);
+      drawX();
+      drawCoordinateAxis(progress);
+      if (showLabels && progress > 0.75) {
+        drawScreenPanel(context, [
+          { text: "First compute the split coordinate", strong: true },
+          { text: `πᵀx = ${format(geometry.xCoordinate)}`, color: candidateColor },
+          { text: `${configuration.pi0} < ${format(geometry.xCoordinate)} < ${configuration.pi0 + 1}`, color: stripColor },
+        ]);
+      }
+      break;
+    }
+
+    case "alpha-distance": {
+      drawStrip(0.24);
+      drawX();
+      drawCoordinateAxis(1);
+      drawArrow(
+        context,
+        lowerAxisPoint,
+        projectedX,
+        tx,
+        ty,
+        witnessColor,
+        7,
+        0.8 + 0.2 * progress,
+      );
+      drawArrow(
+        context,
+        lowerThroughX,
+        configuration.x,
+        tx,
+        ty,
+        witnessColor,
+        5,
+        progress,
+      );
+      drawPoint(context, lowerThroughX, tx, ty, witnessColor, 5, progress);
+
+      if (showLabels) {
+        drawText(
+          context,
+          `α = ${format(geometry.alpha)}`,
+          [
+            (lowerThroughX[0] + configuration.x[0]) / 2,
+            (lowerThroughX[1] + configuration.x[1]) / 2 + 0.18,
+          ],
+          tx,
+          ty,
+          witnessColor,
+          "center",
+        );
+        drawScreenPanel(context, [
+          { text: "Now define α", strong: true },
+          { text: "α := πᵀx − π₀", color: witnessColor, strong: true },
+          { text: `α = ${format(geometry.xCoordinate)} − ${configuration.pi0}` },
+          { text: `α = ${format(geometry.alpha)} ∈ (0,1)`, color: witnessColor },
+        ]);
+      }
+      break;
+    }
+
+    case "slack-budget": {
+      drawStrip(0.18);
+      drawX();
+      const slackAtX = constraintSlack(focusConstraint, configuration.x);
+      const allowance = slackAtX / geometry.alpha;
+      drawConstraintSlack(
+        context,
+        configuration.x,
+        focusConstraint,
+        tx,
+        ty,
+        witnessColor,
+        `bᵢ−aᵢᵀx = ${format(slackAtX)}`,
+        showLabels,
+      );
+      const [facetFrom, facetTo] = constraintLine(focusConstraint, scene.viewport);
+      drawSegment(
+        context,
+        facetFrom,
+        facetTo,
+        tx,
+        ty,
+        focusConstraint.color ?? WARNING,
+        4,
+        0.45 + 0.55 * progress,
+      );
+
+      if (showLabels) {
+        drawScreenPanel(context, [
+          { text: "One row i of Ax ≤ b", strong: true },
+          { text: `slack at x: bᵢ−aᵢᵀx = ${format(slackAtX)}` },
+          { text: `divide by α=${format(geometry.alpha)}` },
+          { text: `budget for y: ${format(slackAtX)}/${format(geometry.alpha)} = ${format(allowance)}`, color: witnessColor, strong: true },
+        ]);
+      }
+      break;
+    }
+
+    case "witness-row": {
+      drawStrip(0.15);
+      drawX();
+      const rowRegion = clipToConstraints(
+        [...scene.constraints, focusWitnessConstraint],
+        scene.viewport,
+      );
+      drawPolygon(
+        context,
+        rowRegion,
+        tx,
+        ty,
+        "rgba(121, 201, 192, 0.22)",
+        witnessColor,
+        progress,
+        true,
+      );
+      const [from, to] = constraintLine(
+        focusWitnessConstraint,
+        scene.viewport,
+      );
+      drawSegment(
+        context,
+        from,
+        to,
+        tx,
+        ty,
+        witnessColor,
+        3,
+        progress,
+        true,
+      );
+
+      if (showLabels) {
+        drawScreenPanel(context, [
+          { text: "Turn that budget into a halfspace for y", strong: true },
+          { text: `bᵢ−aᵢᵀy ≤ (bᵢ−aᵢᵀx)/α`, color: witnessColor },
+          { text: "The blue region contains the y allowed by this one row." },
+        ]);
+      }
+      break;
+    }
+
+    case "witness-region": {
+      drawStrip(0.12);
+      drawX();
+      const revealedRows = Math.max(
+        1,
+        Math.min(
+          witnessConstraints.length,
+          Math.ceil(progress * witnessConstraints.length),
+        ),
+      );
+      const partialRegion = clipToConstraints(
+        [
+          ...scene.constraints,
+          ...witnessConstraints.slice(0, revealedRows),
+        ],
+        scene.viewport,
+      );
+      drawPolygon(
+        context,
+        partialRegion,
+        tx,
+        ty,
+        "rgba(121, 201, 192, 0.24)",
+        witnessColor,
+        0.9,
+        true,
+      );
+
+      witnessConstraints.slice(0, revealedRows).forEach((constraint) => {
+        const [from, to] = constraintLine(constraint, scene.viewport);
+        drawSegment(context, from, to, tx, ty, witnessColor, 1.4, 0.28, true);
+      });
+
+      if (showLabels) {
+        drawScreenPanel(context, [
+          { text: "Intersect the row halfspaces", strong: true },
+          { text: `rows included: ${revealedRows}/${witnessConstraints.length}`, color: witnessColor },
+          { text: "W(x) = {y∈P : b−Ay≤(b−Ax)/α}" },
+        ]);
+      }
+      break;
+    }
+
+    case "overlap": {
+      drawStrip(0.1);
+      drawX();
+      drawPolygon(
+        context,
+        geometry.witnessRegion,
+        tx,
+        ty,
+        "rgba(121, 201, 192, 0.20)",
+        witnessColor,
+        0.9,
+        true,
+      );
+      drawPolygon(
+        context,
+        geometry.split.right,
+        tx,
+        ty,
+        "rgba(143, 136, 220, 0.10)",
+        candidateColor,
+        0.45,
+        true,
+      );
+
+      if (geometry.witnessExists) {
+        drawPolygon(
+          context,
+          geometry.witnessRegionOnRight,
+          tx,
+          ty,
+          "rgba(212, 239, 119, 0.44)",
+          overlapColor,
+          progress,
+        );
+      }
+
+      if (showLabels) {
+        drawScreenPanel(context, [
+          { text: "Existential test", strong: true },
+          { text: "Does W(x) reach π₂?" },
+          {
+            text: geometry.witnessExists ? "W(x) ∩ π₂ ≠ ∅" : "W(x) ∩ π₂ = ∅",
+            color: geometry.witnessExists ? SUCCESS : STRIP,
+            strong: true,
+          },
+        ]);
+      }
+      break;
+    }
+
+    case "select-witness": {
+      drawStrip(0.08);
+      drawX();
+      drawPolygon(
+        context,
+        geometry.witnessRegion,
+        tx,
+        ty,
+        "rgba(121, 201, 192, 0.16)",
+        witnessColor,
+        0.7,
+        true,
+      );
       drawPolygon(
         context,
         geometry.witnessRegionOnRight,
@@ -390,196 +778,187 @@ export function renderSplitMembership({
         ty,
         "rgba(212, 239, 119, 0.42)",
         overlapColor,
-        configuration.phase === "overlap" ? progress : 0.95,
-      );
-    }
-  }
-
-  drawPoint(
-    context,
-    configuration.x,
-    tx,
-    ty,
-    stripColor,
-    8,
-  );
-
-  if (showLabels) {
-    drawText(
-      context,
-      "x",
-      [configuration.x[0] + 0.1, configuration.x[1] + 0.18],
-      tx,
-      ty,
-      stripColor,
-    );
-    drawText(
-      context,
-      `α = πᵀx − π₀ = ${format(geometry.alpha)}`,
-      [configuration.x[0] + 0.14, configuration.x[1] - 0.18],
-      tx,
-      ty,
-      stripColor,
-    );
-  }
-
-  if (
-    (configuration.phase === "construct" ||
-      configuration.phase === "slacks" ||
-      configuration.phase === "conclusion") &&
-    geometry.y &&
-    geometry.z
-  ) {
-    const movingZ = lerpPoint(
-      configuration.x,
-      geometry.z,
-      configuration.phase === "construct" ? progress : 1,
-    );
-
-    drawSegment(
-      context,
-      geometry.y,
-      movingZ,
-      tx,
-      ty,
-      candidateColor,
-      3,
-      0.95,
-    );
-    drawPoint(
-      context,
-      geometry.y,
-      tx,
-      ty,
-      candidateColor,
-      7,
-    );
-    drawPoint(
-      context,
-      movingZ,
-      tx,
-      ty,
-      geometry.candidateValid ? SUCCESS : WARNING,
-      7,
-      configuration.phase === "construct" ? progress : 1,
-    );
-
-    if (showLabels) {
-      drawText(
-        context,
-        "y ∈ π₂",
-        [geometry.y[0] + 0.1, geometry.y[1] + 0.18],
-        tx,
-        ty,
-        candidateColor,
-      );
-      drawText(
-        context,
-        geometry.zInPi1 ? "z ∈ π₁" : "z ∉ P",
-        [movingZ[0] - 0.1, movingZ[1] + 0.2],
-        tx,
-        ty,
-        geometry.zInPi1 ? SUCCESS : STRIP,
-        "right",
+        0.95,
       );
 
-      if (configuration.phase !== "construct" || progress > 0.75) {
-        const zxMidpoint: Point2D = [
-          (geometry.z[0] + configuration.x[0]) / 2,
-          (geometry.z[1] + configuration.x[1]) / 2,
-        ];
-        const xyMidpoint: Point2D = [
-          (configuration.x[0] + geometry.y[0]) / 2,
-          (configuration.x[1] + geometry.y[1]) / 2,
-        ];
-        drawText(
-          context,
-          `α = ${format(geometry.alpha)}`,
-          [zxMidpoint[0], zxMidpoint[1] + 0.12],
-          tx,
-          ty,
-          candidateColor,
-          "center",
-        );
-        drawText(
-          context,
-          `1−α = ${format(1 - geometry.alpha)}`,
-          [xyMidpoint[0], xyMidpoint[1] + 0.12],
-          tx,
-          ty,
-          candidateColor,
-          "center",
-        );
+      if (geometry.y) {
+        const start = centroid(geometry.witnessRegionOnRight);
+        const movingY = lerpPoint(start, geometry.y, progress);
+        drawPoint(context, movingY, tx, ty, candidateColor, 8);
+        if (showLabels) {
+          drawText(
+            context,
+            progress > 0.75 ? "choose y ∈ W(x)∩π₂" : "candidate y",
+            [movingY[0] + 0.12, movingY[1] + 0.18],
+            tx,
+            ty,
+            candidateColor,
+          );
+          drawScreenPanel(context, [
+            { text: "Pick one witness from the overlap", strong: true },
+            { text: "y ∈ P" },
+            { text: "πᵀy ≥ π₀+1" },
+            { text: "b−Ay ≤ (b−Ax)/α", color: candidateColor },
+          ]);
+        }
       }
+      break;
     }
-  }
 
-  if (
-    configuration.phase === "slacks" &&
-    geometry.y &&
-    geometry.tests.length
-  ) {
-    const focusTest =
-      geometry.tests.find(
-        (test) => test.constraint.id === configuration.focusConstraintId,
-      ) ?? geometry.tests[0];
+    case "construct": {
+      drawStrip(0.08);
+      drawX();
+      if (geometry.y && geometry.z) {
+        const movingZ = lerpPoint(configuration.x, geometry.z, progress);
+        drawSegment(
+          context,
+          geometry.y,
+          movingZ,
+          tx,
+          ty,
+          candidateColor,
+          3,
+          0.95,
+        );
+        drawPoint(context, geometry.y, tx, ty, candidateColor, 8);
+        drawPoint(
+          context,
+          movingZ,
+          tx,
+          ty,
+          geometry.candidateValid ? SUCCESS : WARNING,
+          8,
+          progress,
+        );
 
-    drawConstraintSlack(
-      context,
-      configuration.x,
-      focusTest.constraint,
-      tx,
-      ty,
-      witnessColor,
-      `bᵢ−aᵢᵀx = ${format(focusTest.slackAtX)}`,
-      showLabels,
-    );
-    drawConstraintSlack(
-      context,
-      geometry.y,
-      focusTest.constraint,
-      tx,
-      ty,
-      candidateColor,
-      `bᵢ−aᵢᵀy = ${format(focusTest.slackAtY)}`,
-      showLabels,
-    );
+        if (showLabels) {
+          drawText(
+            context,
+            "y ∈ π₂",
+            [geometry.y[0] + 0.12, geometry.y[1] + 0.18],
+            tx,
+            ty,
+            candidateColor,
+          );
+          drawText(
+            context,
+            geometry.zInPi1 ? "z ∈ π₁" : "z ∉ P",
+            [movingZ[0] - 0.12, movingZ[1] + 0.2],
+            tx,
+            ty,
+            geometry.zInPi1 ? SUCCESS : STRIP,
+            "right",
+          );
+          drawScreenPanel(context, [
+            { text: "Extrapolate through x", strong: true },
+            { text: "z = (x−αy)/(1−α)", color: candidateColor },
+            { text: `x = (1−${format(geometry.alpha)})z + ${format(geometry.alpha)}y` },
+            { text: "The slack test guarantees z ∈ P.", color: SUCCESS },
+          ]);
+        }
+      }
+      break;
+    }
 
-    if (showLabels) {
-      drawSlackPanel(
+    case "slacks": {
+      drawStrip(0.06);
+      drawX();
+      if (geometry.y && geometry.z && geometry.tests.length) {
+        drawSegment(
+          context,
+          geometry.y,
+          geometry.z,
+          tx,
+          ty,
+          candidateColor,
+          2.5,
+          0.65,
+        );
+        drawPoint(context, geometry.y, tx, ty, candidateColor, 7);
+        drawPoint(context, geometry.z, tx, ty, SUCCESS, 7);
+
+        const focusTest =
+          geometry.tests.find(
+            (test) => test.constraint.id === configuration.focusConstraintId,
+          ) ?? geometry.tests[0];
+
+        drawConstraintSlack(
+          context,
+          configuration.x,
+          focusTest.constraint,
+          tx,
+          ty,
+          witnessColor,
+          `bᵢ−aᵢᵀx = ${format(focusTest.slackAtX)}`,
+          showLabels,
+        );
+        drawConstraintSlack(
+          context,
+          geometry.y,
+          focusTest.constraint,
+          tx,
+          ty,
+          candidateColor,
+          `bᵢ−aᵢᵀy = ${format(focusTest.slackAtY)}`,
+          showLabels,
+        );
+
+        if (showLabels) {
+          drawSlackPanel(
+            context,
+            geometry.tests,
+            progress,
+            configuration.focusConstraintId,
+          );
+        }
+      }
+      break;
+    }
+
+    case "conclusion": {
+      drawStrip(0.05);
+      drawX();
+      drawPolygon(
         context,
-        geometry.tests,
-        progress,
-        configuration.focusConstraintId,
+        geometry.split.splitHull,
+        tx,
+        ty,
+        geometry.witnessExists
+          ? "rgba(79, 139, 98, 0.12)"
+          : "rgba(143, 136, 220, 0.10)",
+        geometry.witnessExists ? SUCCESS : RIGHT,
+        0.95,
+        true,
       );
-    }
-  }
 
-  if (configuration.phase === "conclusion") {
-    drawPolygon(
-      context,
-      geometry.split.splitHull,
-      tx,
-      ty,
-      geometry.witnessExists
-        ? "rgba(79, 139, 98, 0.12)"
-        : "rgba(143, 136, 220, 0.10)",
-      geometry.witnessExists ? SUCCESS : RIGHT,
-      0.95,
-      true,
-    );
+      if (geometry.y && geometry.z) {
+        drawSegment(
+          context,
+          geometry.y,
+          geometry.z,
+          tx,
+          ty,
+          candidateColor,
+          3,
+          0.9,
+        );
+        drawPoint(context, geometry.y, tx, ty, candidateColor, 7);
+        drawPoint(context, geometry.z, tx, ty, SUCCESS, 7);
+      }
 
-    if (showLabels) {
-      const message = geometry.witnessExists
-        ? "W(x) ∩ π₂ ≠ ∅  ⇒  x ∈ P⁽π,π₀⁾"
-        : "W(x) ∩ π₂ = ∅  ⇒  x ∉ P⁽π,π₀⁾";
-      const canvasWidth = context.canvas.clientWidth;
-      context.save();
-      context.font = "600 13px var(--font-geist-mono), monospace";
-      context.textAlign = "center";
-      context.fillStyle = geometry.witnessExists ? SUCCESS : STRIP;
-      context.fillText(message, canvasWidth / 2, 28);
-      context.restore();
+      if (showLabels) {
+        drawScreenPanel(context, [
+          { text: geometry.witnessExists ? "Membership certified" : "Point cut off", strong: true },
+          {
+            text: geometry.witnessExists
+              ? "W(x) ∩ π₂ ≠ ∅  ⇒  x ∈ P⁽π,π₀⁾"
+              : "W(x) ∩ π₂ = ∅  ⇒  x ∉ P⁽π,π₀⁾",
+            color: geometry.witnessExists ? SUCCESS : STRIP,
+            strong: true,
+          },
+        ]);
+      }
+      break;
     }
   }
 }

@@ -108,27 +108,100 @@ function scene({
 const survivingStages: VisualizationStage[] = [
   {
     id: "survive-inside-strip",
-    kicker: "Lemma 45 · Point inside the split",
-    title: "Only points inside the strip need the criterion",
+    kicker: "Lemma 45 · Start",
+    title: "Place x inside the open split strip",
     description:
-      "The point x belongs to P, but its split coordinate lies strictly between two consecutive integers. It may or may not survive the split convexification.",
-    formula: "π₀<πᵀx<π₀+1,   α:=πᵀx−π₀∈(0,1)",
+      "The point x is feasible for P and lies strictly between the two split hyperplanes. At this stage we only identify the point and the strip; α has not been introduced yet.",
+    formula: "x∈P,   π₀<πᵀx<π₀+1",
     insight:
-      "Here π=(1,0), π₀=2, and x=(2.4,2.4), so α=0.4.",
+      "The question is whether x is recovered when the two surviving sides are convexified.",
     scene: scene({
       x: survivingPoint,
       phase: "setup",
     }),
   },
   {
-    id: "survive-witness-region",
-    kicker: "Lemma 45 · Slack budgets",
-    title: "The vector inequality defines a witness polyhedron",
+    id: "survive-split-coordinate",
+    kicker: "Lemma 45 · Split coordinate",
+    title: "Project x onto the π-axis",
     description:
-      "For fixed x, every row of A becomes a halfspace for the possible witness y. Their intersection with P is the animated region W(x).",
-    formula: "W(x):={y∈P : b−Ay≤(b−Ax)/α}",
+      "The animation projects x onto span(π). Its position on that axis represents the scalar split coordinate πᵀx.",
+    formula: "πᵀx=2.4",
     insight:
-      "A point y is allowed only when it respects the scaled slack budget of x in every constraint row.",
+      "The second picture is now genuinely different: the geometry is reduced to the one-dimensional split coordinate.",
+    scene: scene({
+      x: survivingPoint,
+      phase: "split-coordinate",
+    }),
+  },
+  {
+    id: "survive-alpha",
+    kicker: "Lemma 45 · Define α",
+    title: "α is the distance from π₀ to πᵀx in split coordinates",
+    description:
+      "Only now do we introduce α. The highlighted segment begins at the lower integer threshold π₀ and ends at the projected value πᵀx.",
+    formula: "α:=πᵀx−π₀=2.4−2=0.4",
+    insight:
+      "Because x lies inside the strip, α is automatically between 0 and 1.",
+    scene: scene({
+      x: survivingPoint,
+      phase: "alpha-distance",
+    }),
+  },
+  {
+    id: "survive-slack-budget",
+    kicker: "Lemma 45 · One constraint row",
+    title: "Measure the slack of x in one facet",
+    description:
+      "For a row aᵢᵀu≤bᵢ, the segment from x to the facet represents bᵢ−aᵢᵀx. Dividing this slack by α gives the maximum slack allowed for a witness y.",
+    formula: "bᵢ−aᵢᵀy≤(bᵢ−aᵢᵀx)/α",
+    insight:
+      "The denominator is no longer mysterious: it is the α visualized in the preceding stage.",
+    scene: scene({
+      x: survivingPoint,
+      phase: "slack-budget",
+      focusConstraintId: "upper-right",
+    }),
+  },
+  {
+    id: "survive-first-witness-row",
+    kicker: "Lemma 45 · First witness halfspace",
+    title: "One slack budget becomes a region for y",
+    description:
+      "Rearranging the selected component inequality produces one halfspace in the y-plane. The blue region contains exactly the witnesses allowed by this row.",
+    formula: "bᵢ−aᵢᵀy≤(bᵢ−aᵢᵀx)/α",
+    insight:
+      "A single row usually leaves many possible witnesses.",
+    scene: scene({
+      x: survivingPoint,
+      phase: "witness-row",
+      focusConstraintId: "upper-right",
+    }),
+  },
+  {
+    id: "survive-second-witness-row",
+    kicker: "Lemma 45 · Another witness halfspace",
+    title: "A different row restricts y in another direction",
+    description:
+      "The second highlighted constraint produces a different witness halfspace. The final witness set must satisfy both of these and every remaining row simultaneously.",
+    formula: "bⱼ−aⱼᵀy≤(bⱼ−aⱼᵀx)/α",
+    insight:
+      "The vector inequality is componentwise: every row contributes its own geometric restriction.",
+    scene: scene({
+      x: survivingPoint,
+      phase: "witness-row",
+      focusConstraintId: "upper-left",
+    }),
+  },
+  {
+    id: "survive-witness-region",
+    kicker: "Lemma 45 · Intersect all rows",
+    title: "Watch the witness polyhedron W(x) form row by row",
+    description:
+      "The animation successively adds all witness halfspaces. Their intersection with P is the complete set W(x).",
+    formula: "W(x):={y∈P:b−Ay≤(b−Ax)/α}",
+    insight:
+      "Each new row can only shrink the set of admissible witnesses.",
     scene: scene({
       x: survivingPoint,
       phase: "witness-region",
@@ -136,27 +209,42 @@ const survivingStages: VisualizationStage[] = [
   },
   {
     id: "survive-overlap",
-    kicker: "Lemma 45 · Existential condition",
-    title: "Ask whether W(x) reaches the second split side",
+    kicker: "Lemma 45 · Existential test",
+    title: "Check whether W(x) reaches π₂",
     description:
-      "The lemma does not require every point of π₂ to work. It requires at least one point that lies in both π₂ and W(x).",
-    formula: "x∈P⁽π,π₀⁾ ⇔ W(x)∩π₂≠∅",
+      "The violet region is the right split side π₂. The bright overlap consists of witnesses that satisfy both the slack inequality and πᵀy≥π₀+1.",
+    formula: "W(x)∩π₂≠∅",
     insight:
-      "The bright overlap is nonempty, so a valid witness exists.",
+      "The overlap is nonempty, so at least one valid witness exists.",
     scene: scene({
       x: survivingPoint,
       phase: "overlap",
     }),
   },
   {
-    id: "survive-construct",
-    kicker: "Lemma 45 · Geometric certificate",
-    title: "Choose y and extrapolate through x",
+    id: "survive-select-witness",
+    kicker: "Lemma 45 · Choose a witness",
+    title: "Select one point y from the overlap",
     description:
-      "Pick y in W(x)∩π₂ and define z=(x−αy)/(1−α). The animation extends the line from y through x until it reaches z.",
+      "The existential statement requires only one witness. The animation selects y from W(x)∩π₂ before constructing the point on the opposite split side.",
+    formula: "y∈P,   πᵀy≥π₀+1,   b−Ay≤(b−Ax)/α",
+    insight:
+      "All three properties are visible in the location of y.",
+    scene: scene({
+      x: survivingPoint,
+      y: witness,
+      phase: "select-witness",
+    }),
+  },
+  {
+    id: "survive-construct",
+    kicker: "Lemma 45 · Construct z",
+    title: "Extrapolate from y through x to the left side",
+    description:
+      "Define z=(x−αy)/(1−α). The line grows from y through x until it reaches z. The split-coordinate calculation places z in π₁.",
     formula: "z=(x−αy)/(1−α),   x=(1−α)z+αy",
     insight:
-      "The split coordinate puts z in π₁; the slack inequality prevents z from leaving P.",
+      "The slack inequality is precisely what guarantees that this extrapolated point still lies in P.",
     scene: scene({
       x: survivingPoint,
       y: witness,
@@ -165,13 +253,13 @@ const survivingStages: VisualizationStage[] = [
   },
   {
     id: "survive-slacks",
-    kicker: "Lemma 45 · Componentwise verification",
-    title: "Check the slack inequality row by row",
+    kicker: "Lemma 45 · Verify all rows",
+    title: "Compare every slack with its α-scaled budget",
     description:
-      "Each bar compares the slack used by y with the allowance obtained by scaling the slack of x by 1/α.",
+      "The panel checks the vector inequality component by component. A highlighted facet also shows the corresponding slacks directly in the polyhedron.",
     formula: "bᵢ−aᵢᵀy≤(bᵢ−aᵢᵀx)/α   for every i",
     insight:
-      "All rows pass. The highlighted facet also shows the two slacks directly in the geometry.",
+      "All rows pass, so the chosen y is a valid certificate.",
     scene: scene({
       x: survivingPoint,
       y: witness,
@@ -185,10 +273,10 @@ const survivingStages: VisualizationStage[] = [
     kicker: "Lemma 45 · Conclusion",
     title: "The segment proves membership",
     description:
-      "We found z∈π₁ and y∈π₂ with x=(1−α)z+αy. Hence x lies in the convex hull of the two split sides.",
+      "We found z∈π₁ and y∈π₂ with x=(1−α)z+αy. Therefore x belongs to the convex hull of the two split sides.",
     formula: "x∈conv(π₁∪π₂)=P⁽π,π₀⁾",
     insight:
-      "The algebraic slack test and the geometric convex-combination certificate are equivalent.",
+      "The witness inequality and the geometric convex-combination certificate are the same statement in two forms.",
     scene: scene({
       x: survivingPoint,
       y: witness,
@@ -200,27 +288,100 @@ const survivingStages: VisualizationStage[] = [
 const cutOffStages: VisualizationStage[] = [
   {
     id: "cut-off-inside-strip",
-    kicker: "Lemma 45 · A point that is removed",
-    title: "This point also starts inside the split",
+    kicker: "Lemma 45 · Start",
+    title: "Place a second feasible point inside the strip",
     description:
-      "The point is feasible for P and has the same split coordinate α=0.4, but it lies close to the fractional apex of the relaxation.",
-    formula: "x=(2.4,3.8),   α=0.4",
+      "This point is also feasible for P and lies in the same split strip, but it is much closer to the fractional apex.",
+    formula: "x=(2.4,3.8),   2<πᵀx<3",
     insight:
-      "Feasibility for P alone does not imply membership in the split polyhedron.",
+      "No conclusion about split membership has been made yet.",
     scene: scene({
       x: cutOffPoint,
       phase: "setup",
     }),
   },
   {
-    id: "cut-off-witness-region",
-    kicker: "Lemma 45 · Tighter slack budgets",
-    title: "Small slacks make W(x) much narrower",
+    id: "cut-off-split-coordinate",
+    kicker: "Lemma 45 · Split coordinate",
+    title: "Project the second point onto the π-axis",
     description:
-      "Because x is close to the upper facets, some entries of b−Ax are small. After division by α, they still leave little room for a possible witness.",
-    formula: "W(x):={y∈P : b−Ay≤(b−Ax)/α}",
+      "The projection again gives πᵀx=2.4. The two examples therefore have the same α even though their positions inside P are different.",
+    formula: "πᵀx=2.4",
     insight:
-      "The witness polyhedron remains to the left of the second split side.",
+      "The difference between the examples comes from the constraint slacks, not from the split coordinate.",
+    scene: scene({
+      x: cutOffPoint,
+      phase: "split-coordinate",
+    }),
+  },
+  {
+    id: "cut-off-alpha",
+    kicker: "Lemma 45 · Define α",
+    title: "Compute the same α explicitly",
+    description:
+      "The highlighted split-coordinate segment again runs from π₀=2 to πᵀx=2.4.",
+    formula: "α:=πᵀx−π₀=2.4−2=0.4",
+    insight:
+      "The denominator is identical in both examples.",
+    scene: scene({
+      x: cutOffPoint,
+      phase: "alpha-distance",
+    }),
+  },
+  {
+    id: "cut-off-slack-budget",
+    kicker: "Lemma 45 · Tight upper facet",
+    title: "The point has almost no slack near the apex",
+    description:
+      "The highlighted upper-right constraint is nearly tight at x. Even after division by α, its witness budget remains very small.",
+    formula: "(bᵢ−aᵢᵀx)/α≈0.24",
+    insight:
+      "This tiny budget is what makes the witness set fail to reach the other side of the split.",
+    scene: scene({
+      x: cutOffPoint,
+      phase: "slack-budget",
+      focusConstraintId: "upper-right",
+    }),
+  },
+  {
+    id: "cut-off-first-witness-row",
+    kicker: "Lemma 45 · First restrictive row",
+    title: "The first witness halfspace is already narrow",
+    description:
+      "The upper-right row allows y only in the displayed blue region. Compare its size with the corresponding stage of the surviving example.",
+    formula: "bᵢ−aᵢᵀy≤(bᵢ−aᵢᵀx)/α",
+    insight:
+      "The picture now changes because the slack vector b−Ax has changed.",
+    scene: scene({
+      x: cutOffPoint,
+      phase: "witness-row",
+      focusConstraintId: "upper-right",
+    }),
+  },
+  {
+    id: "cut-off-second-witness-row",
+    kicker: "Lemma 45 · Second restrictive row",
+    title: "Another upper facet closes the remaining escape",
+    description:
+      "The upper-left row supplies a second narrow witness halfspace. A valid witness must satisfy both upper restrictions.",
+    formula: "bⱼ−aⱼᵀy≤(bⱼ−aⱼᵀx)/α",
+    insight:
+      "The two small upper slacks encode that x lies close to the fractional apex.",
+    scene: scene({
+      x: cutOffPoint,
+      phase: "witness-row",
+      focusConstraintId: "upper-left",
+    }),
+  },
+  {
+    id: "cut-off-witness-region",
+    kicker: "Lemma 45 · Intersect all rows",
+    title: "The complete witness region stays on the left",
+    description:
+      "All row halfspaces are added one after another. Their intersection W(x) never reaches the second split side.",
+    formula: "W(x):={y∈P:b−Ay≤(b−Ax)/α}",
+    insight:
+      "This stage is visually distinct from the starting polyhedron because W(x) is now drawn explicitly and formed progressively.",
     scene: scene({
       x: cutOffPoint,
       phase: "witness-region",
@@ -229,12 +390,12 @@ const cutOffStages: VisualizationStage[] = [
   {
     id: "cut-off-empty-overlap",
     kicker: "Lemma 45 · Empty intersection",
-    title: "No point in π₂ satisfies all slack budgets",
+    title: "W(x) and π₂ do not meet",
     description:
-      "The animated witness region and π₂ do not overlap. This rules out every possible witness y simultaneously.",
+      "The violet right side and the blue witness region remain disjoint. Thus no point y can satisfy all requirements simultaneously.",
     formula: "W(x)∩π₂=∅",
     insight:
-      "The failure is existential: there is no admissible right endpoint at all.",
+      "The failure is existential: every possible witness is ruled out at once.",
     scene: scene({
       x: cutOffPoint,
       phase: "overlap",
@@ -245,7 +406,7 @@ const cutOffStages: VisualizationStage[] = [
     kicker: "Lemma 45 · Conclusion",
     title: "The split convex hull cuts the point off",
     description:
-      "Since no witness exists, x cannot be expressed as a convex combination of a point in π₁ and a point in π₂.",
+      "Since no witness exists, x cannot be expressed as a convex combination of one point in π₁ and one point in π₂.",
     formula: "x∉P⁽π,π₀⁾",
     insight:
       "The new upper boundary of the split polyhedron lies below the fractional point.",
@@ -260,12 +421,13 @@ const survivingExample: VisualizationExample = {
   id: "witness-exists",
   title: "Witness exists — point survives",
   description:
-    "Build W(x), locate a witness on π₂, and recover the segment certificate that keeps x in the split polyhedron.",
+    "Derive α visibly, build W(x) row by row, select a witness in π₂, and recover the segment certificate.",
   stages: survivingStages,
   proof: {
     title: "Why the witness certifies membership",
     steps: [
-      "Set α=πᵀx−π₀ and choose y∈π₂ satisfying the componentwise slack inequality.",
+      "Compute the split coordinate and set α=πᵀx−π₀∈(0,1).",
+      "Choose y∈π₂ satisfying b−Ay≤(b−Ax)/α componentwise.",
       "Define z=(x−αy)/(1−α), so x=(1−α)z+αy.",
       "Because πᵀy≥π₀+1, the split coordinate of z is at most π₀.",
       "The slack inequality implies Az≤b, hence z∈P and therefore z∈π₁.",
@@ -278,16 +440,17 @@ const cutOffExample: VisualizationExample = {
   id: "no-witness",
   title: "No witness — point is cut off",
   description:
-    "Apply the same characterization to a point near the fractional apex and see its witness region fail to reach π₂.",
+    "Use the same explicit α construction, then see the much tighter slack budgets prevent W(x) from reaching π₂.",
   stages: cutOffStages,
   proof: {
     title: "Why an empty witness intersection proves nonmembership",
     steps: [
-      "For fixed x, the inequality b−Ay≤(b−Ax)/α defines the witness polyhedron W(x).",
-      "Lemma 45 says that membership is equivalent to the existence of y∈W(x)∩π₂.",
-      "In this example W(x)∩π₂ is empty.",
-      "Consequently no admissible right endpoint y and no corresponding left endpoint z exist.",
-      "Therefore x is outside the split polyhedron.",
+      "Compute α=πᵀx−π₀ from the projected split coordinate.",
+      "For fixed x, the componentwise inequalities define the witness polyhedron W(x).",
+      "The small slacks near the upper facets make W(x) too narrow to reach π₂.",
+      "Therefore W(x)∩π₂ is empty.",
+      "No admissible right endpoint y and no corresponding left endpoint z exist.",
+      "Hence x lies outside the split polyhedron.",
     ],
   },
 };
@@ -299,9 +462,9 @@ const visualization: VisualizationDefinition = {
   chapter: "Cutting planes",
   order: 4,
   description:
-    "Visualize Lemma 45 by turning the componentwise slack inequality into a witness polyhedron and testing whether it reaches the second side of the split.",
+    "Visualize Lemma 45 from the split coordinate and α through the row-wise witness inequalities to the final convex-combination certificate.",
   difficulty: "Advanced",
-  duration: 12,
+  duration: 20,
   accent: "#79c9c0",
   controls: {
     constraints: false,

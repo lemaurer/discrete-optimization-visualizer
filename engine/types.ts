@@ -75,8 +75,13 @@ export interface SplitProjectionScene {
 
 export type SplitMembershipPhase =
   | "setup"
+  | "split-coordinate"
+  | "alpha-distance"
+  | "slack-budget"
+  | "witness-row"
   | "witness-region"
   | "overlap"
+  | "select-witness"
   | "construct"
   | "slacks"
   | "conclusion";
