@@ -16,6 +16,8 @@ export interface PointPrimitive {
   label?: string;
   style?: "vertex" | "fractional" | "integer" | "optimum";
   active?: boolean;
+  /** Optional starting location for stage playback. */
+  animateFrom?: Point2D;
 }
 
 export interface VectorPrimitive {
@@ -24,6 +26,8 @@ export interface VectorPrimitive {
   to: Point2D;
   label?: string;
   color?: string;
+  /** Draw the vector from zero length to its full endpoint. */
+  animate?: boolean;
 }
 
 export interface PolygonPrimitive {
@@ -31,6 +35,8 @@ export interface PolygonPrimitive {
   points: Point2D[];
   label?: string;
   style?: "feasible" | "integer-hull" | "removed";
+  /** Optional starting polygon with the same number of vertices. */
+  fromPoints?: Point2D[];
 }
 
 export interface LinePrimitive {
@@ -40,6 +46,8 @@ export interface LinePrimitive {
   label?: string;
   style?: "constraint" | "objective" | "cut";
   color?: string;
+  /** Reveal the segment from `from` to `to` during stage playback. */
+  animate?: boolean;
 }
 
 export interface LabelPrimitive {
