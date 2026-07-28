@@ -5,13 +5,30 @@ import { VisualizationPlayer } from "@/components/VisualizationPlayer";
 import { visualizationRegistry } from "@/visualizations/registry";
 
 export default function Home() {
+  const chapterNames = useMemo(
+    () => [...new Set(visualizationRegistry.map((visualization) => visualization.chapter))],
+    [],
+  );
   const [activeId, setActiveId] = useState(visualizationRegistry[0]?.id ?? "");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [collapsedChapters, setCollapsedChapters] = useState<Set<string>>(
+    () => new Set(chapterNames.slice(1)),
+  );
+
   const activeVisualization = useMemo(
     () =>
       visualizationRegistry.find((visualization) => visualization.id === activeId) ??
       visualizationRegistry[0],
     [activeId],
+  );
+
+  const availableByChapter = useMemo(
+    () =>
+      Object.groupBy(
+        visualizationRegistry,
+        (visualization) => visualization.chapter,
+      ),
+    [],
   );
 
   useEffect(() => {
@@ -22,14 +39,30 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const activeChapter = activeVisualization?.chapter;
+    if (!activeChapter) return;
+
+    setCollapsedChapters((current) => {
+      if (!current.has(activeChapter)) return current;
+      const next = new Set(current);
+      next.delete(activeChapter);
+      return next;
+    });
+  }, [activeVisualization?.chapter]);
+
   if (!activeVisualization) {
     return <main className="empty-state">No visualization modules found.</main>;
   }
 
-  const availableByChapter = Object.groupBy(
-    visualizationRegistry,
-    (visualization) => visualization.chapter,
-  );
+  const toggleChapter = (chapter: string) => {
+    setCollapsedChapters((current) => {
+      const next = new Set(current);
+      if (next.has(chapter)) next.delete(chapter);
+      else next.add(chapter);
+      return next;
+    });
+  };
 
   return (
     <main className="app-shell">
@@ -47,32 +80,78 @@ export default function Home() {
         </div>
 
         <nav className="chapter-nav" aria-label="Visualization chapters">
-          <p className="eyebrow">Visual textbook</p>
-          {Object.entries(availableByChapter).map(([chapter, visualizations], chapterIndex) => (
-            <section className="chapter-group" key={chapter}>
-              <div className="chapter-heading">
-                <span>{String(chapterIndex + 1).padStart(2, "0")}</span>
-                <h2>{chapter}</h2>
-              </div>
-              <div className="chapter-items">
-                {visualizations?.map((visualization) => (
+          <div className="chapter-nav-header">
+            <p className="eyebrow">Visual textbook</p>
+            <div className="chapter-nav-actions">
+              <button
+                onClick={() => setCollapsedChapters(new Set())}
+                type="button"
+              >
+                Open all
+              </button>
+              <button
+                onClick={() => setCollapsedChapters(new Set(chapterNames))}
+                type="button"
+              >
+                Close all
+              </button>
+            </div>
+          </div>
+
+          {Object.entries(availableByChapter).map(
+            ([chapter, visualizations], chapterIndex) => {
+              const collapsed = collapsedChapters.has(chapter);
+              const itemsId = `chapter-items-${chapterIndex}`;
+
+              return (
+                <section
+                  className={`chapter-group ${collapsed ? "chapter-group--collapsed" : ""}`}
+                  key={chapter}
+                >
                   <button
-                    className={visualization.id === activeId ? "nav-item nav-item--active" : "nav-item"}
-                    key={visualization.id}
-                    onClick={() => {
-                      setActiveId(visualization.id);
-                      setMobileNavOpen(false);
-                    }}
+                    aria-controls={itemsId}
+                    aria-expanded={!collapsed}
+                    className="chapter-heading"
+                    onClick={() => toggleChapter(chapter)}
                     type="button"
                   >
-                    <span className="nav-item-index">0{visualization.order}</span>
-                    <span>{visualization.shortTitle ?? visualization.title}</span>
-                    <i aria-hidden="true">→</i>
+                    <span>{String(chapterIndex + 1).padStart(2, "0")}</span>
+                    <h2>{chapter}</h2>
+                    <em>{visualizations?.length ?? 0}</em>
+                    <i aria-hidden="true">⌄</i>
                   </button>
-                ))}
-              </div>
-            </section>
-          ))}
+
+                  {!collapsed && (
+                    <div className="chapter-items" id={itemsId}>
+                      {visualizations?.map((visualization) => (
+                        <button
+                          className={
+                            visualization.id === activeId
+                              ? "nav-item nav-item--active"
+                              : "nav-item"
+                          }
+                          key={visualization.id}
+                          onClick={() => {
+                            setActiveId(visualization.id);
+                            setMobileNavOpen(false);
+                          }}
+                          type="button"
+                        >
+                          <span className="nav-item-index">
+                            {String(visualization.order).padStart(2, "0")}
+                          </span>
+                          <span>
+                            {visualization.shortTitle ?? visualization.title}
+                          </span>
+                          <i aria-hidden="true">→</i>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            },
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -105,7 +184,9 @@ export default function Home() {
           <div className="breadcrumb">
             <span>{activeVisualization.chapter}</span>
             <i>/</i>
-            <strong>{activeVisualization.shortTitle ?? activeVisualization.title}</strong>
+            <strong>
+              {activeVisualization.shortTitle ?? activeVisualization.title}
+            </strong>
           </div>
           <div className="topbar-meta">
             <span className="topbar-pill">{activeVisualization.difficulty}</span>
@@ -113,7 +194,10 @@ export default function Home() {
           </div>
         </header>
 
-        <VisualizationPlayer key={activeVisualization.id} definition={activeVisualization} />
+        <VisualizationPlayer
+          key={activeVisualization.id}
+          definition={activeVisualization}
+        />
       </section>
     </main>
   );
