@@ -5,48 +5,43 @@ import type {
   VisualizationStage,
 } from "@/visualizations/types";
 
-const boxViewport: Scene["viewport"] = { x: [-0.75, 5.75], y: [-0.75, 5.75] };
-const coneViewport: Scene["viewport"] = { x: [-0.75, 5.75], y: [-0.75, 5.75] };
-
-const boxConstraints: Scene["constraints"] = [
+const optimizationConstraints: Scene["constraints"] = [
   { id: "left", a: -1, b: 0, limit: 0, label: "x₁≥0", color: "#79c9c0" },
   { id: "bottom", a: 0, b: -1, limit: 0, label: "x₂≥0", color: "#79c9c0" },
   { id: "right", a: 1, b: 0, limit: 5, label: "x₁≤5", color: "#8f88dc" },
-  { id: "top", a: 0, b: 1, limit: 5, label: "x₂≤5", color: "#8f88dc" },
-];
-
-const firstOrthantConstraints: Scene["constraints"] = [
-  { id: "u1-positive", a: -1, b: 0, limit: 0, label: "u₁≥0", color: "#f49a4a" },
-  { id: "u2-positive", a: 0, b: -1, limit: 0, label: "u₂≥0", color: "#8f88dc" },
+  { id: "top", a: 0, b: 1, limit: 4, label: "x₂≤4", color: "#8f88dc" },
+  { id: "slope", a: 1, b: 1, limit: 7, label: "x₁+x₂≤7", color: "#f49a4a" },
 ];
 
 const z: Point2D = [1, 1];
-const farOptimum: Point2D = [5, 5];
+const optimum: Point2D = [5, 2];
 const localImprovement: Point2D = [2, 1];
-const objective = [2, 1] as Point2D;
 
 function optimizationScene(overrides: Partial<Scene> = {}): Scene {
   return {
-    viewport: boxViewport,
-    constraints: boxConstraints,
+    viewport: { x: [-0.6, 5.7], y: [-0.6, 4.8] },
+    constraints: optimizationConstraints,
     showGrid: true,
     showConstraints: true,
     showFeasibleRegion: true,
-    showVertices: false,
+    showVertices: true,
     showLattice: true,
     axisLabels: { x: "x₁", y: "x₂" },
     caption: {
-      primary: "Integer box with Δ=1",
-      secondary: "objective c=(2,1)",
+      primary: "Pentagonal integer polytope with Δ=1",
+      secondary: "maximize c=(2,1); unique optimum is the vertex (5,2)",
     },
     ...overrides,
   };
 }
 
-function coneScene(primitives: Primitive[], overrides: Partial<Scene> = {}): Scene {
+function orthantScene(primitives: Primitive[], overrides: Partial<Scene> = {}): Scene {
   return {
-    viewport: coneViewport,
-    constraints: firstOrthantConstraints,
+    viewport: { x: [-0.6, 5.4], y: [-0.6, 3.6] },
+    constraints: [
+      { id: "u1-positive", a: -1, b: 0, limit: 0, label: "u₁≥0", color: "#f49a4a" },
+      { id: "u2-positive", a: 0, b: -1, limit: 0, label: "u₂≥0", color: "#8f88dc" },
+    ],
     showGrid: true,
     showConstraints: true,
     showFeasibleRegion: true,
@@ -55,105 +50,92 @@ function coneScene(primitives: Primitive[], overrides: Partial<Scene> = {}): Sce
     axisLabels: { x: "u₁", y: "u₂" },
     primitives,
     caption: {
-      primary: "Difference cone C",
-      secondary: "primitive extreme rays e₁,e₂ have norm 1=Δ",
+      primary: "Sign-compatible displacement cone",
+      secondary: "primitive rays e₁,e₂ have norm Δ=1",
     },
     ...overrides,
   };
 }
 
-const improvingRayStages: VisualizationStage[] = [
+const vertexImprovementStages: VisualizationStage[] = [
   {
-    id: "theorem35-nonoptimal-z",
-    kicker: "Theorem 35 · Starting point",
-    title: "A feasible integer point can be visibly nonoptimal",
+    id: "t35-pentagon-start",
+    kicker: "Theorem 35 · Nonoptimal vertex",
+    title: "Start at a feasible integer point below the optimal vertex",
     description:
-      "The point z=(1,1) is feasible and integral, but the objective 2x₁+x₂ can still be increased. The moving level line makes the improving direction visible.",
-    formula: "z∈P∩ℤ²,   z∉argmax(IP)",
+      "The natural pentagon has unique optimum ŷ=(5,2), a vertex. The current integer point z=(1,1) is feasible but not optimal for c=(2,1).",
+    formula: "cᵀz=3<12=cᵀŷ",
     insight:
-      "The theorem promises not merely a better point somewhere, but one inside an ℓ∞-box of radius nΔ around z.",
+      "The theorem will not jump all the way to the optimum. It extracts a bounded local improvement from the displacement toward it.",
     scene: optimizationScene({
-      objective: { vector: objective, label: "c=(2,1)" },
-      primitives: [{ kind: "point", at: z, label: "nonoptimal z", style: "integer" }],
-    }),
-  },
-  {
-    id: "theorem35-far-optimum",
-    kicker: "Theorem 35 · A distant witness",
-    title: "An optimum proves that an improving displacement exists",
-    description:
-      "The distant optimum ŷ=(5,5) provides a displacement ŷ−z in the sign-compatible cone. The proof does not use its full length; it searches inside its ray decomposition for a shorter improving certificate.",
-    formula: "ŷ−z=(4,4)∈C",
-    insight:
-      "The optimal point is only used to certify that the auxiliary search for an improving displacement is nonempty.",
-    scene: optimizationScene({
+      objective: { vector: [2, 1], label: "c=(2,1)" },
       primitives: [
-        { kind: "point", at: z, label: "z", style: "integer" },
-        { kind: "point", at: farOptimum, label: "optimal ŷ", style: "optimum" },
-        { kind: "vector", from: z, to: farOptimum, label: "ŷ−z", color: "#8f88dc", animate: true },
+        { kind: "point", at: z, label: "current integer point z", style: "integer" },
+        { kind: "point", at: optimum, label: "unique optimal vertex ŷ", style: "optimum" },
       ],
     }),
   },
   {
-    id: "theorem35-difference-cone",
-    kicker: "Theorem 35 · Difference space",
-    title: "Translate the geometry so z becomes the origin",
+    id: "t35-pentagon-displacement",
+    kicker: "Theorem 35 · Distant witness",
+    title: "The optimal vertex certifies an improving displacement",
     description:
-      "In difference coordinates, feasible movements toward ŷ lie in a cone generated here by the primitive extreme rays e₁ and e₂. Lemma 32 bounds both by Δ=1.",
-    formula: "C={u:A₁u≥0, A₂u≤0}",
+      "The vector ŷ−z=(4,1) lies in a sign-compatible cone. It proves that improving feasible integral displacements exist, but it is much longer than necessary.",
+    formula: "ŷ−z=(4,1)",
     insight:
-      "The cone records which inequalities may loosen and which may tighten while moving away from z.",
-    scene: coneScene([
+      "The far optimum is a witness of nonemptiness, not the move ultimately returned by the theorem.",
+    scene: optimizationScene({
+      primitives: [
+        { kind: "point", at: z, label: "z", style: "integer" },
+        { kind: "point", at: optimum, label: "optimal vertex ŷ", style: "optimum" },
+        { kind: "vector", from: z, to: optimum, label: "long improving displacement", color: "#8f88dc", animate: true },
+      ],
+    }),
+  },
+  {
+    id: "t35-pentagon-cone",
+    kicker: "Theorem 35 · Extreme rays",
+    title: "Translate z to the origin and expose short primitive directions",
+    description:
+      "In displacement coordinates, the relevant cone is generated by e₁ and e₂. The long vector (4,1) decomposes as four horizontal primitive steps and one vertical primitive step.",
+    formula: "ŷ−z=4e₁+e₂",
+    insight:
+      "Lemma 32 says every primitive extreme ray has norm at most Δ=1 in this example.",
+    scene: orthantScene([
       { kind: "vector", from: [0, 0], to: [5, 0], label: "u¹=e₁", color: "#f49a4a", animate: true },
-      { kind: "vector", from: [0, 0], to: [0, 5], label: "u²=e₂", color: "#8f88dc", animate: true },
-      { kind: "vector", from: [0, 0], to: [4, 4], label: "ŷ−z", color: "#e27c89", animate: true },
-      { kind: "point", at: [1, 0], label: "primitive ray step", style: "integer" },
-      { kind: "point", at: [0, 1], label: "primitive ray step", style: "integer" },
+      { kind: "vector", from: [0, 0], to: [0, 3], label: "u²=e₂", color: "#8f88dc", animate: true },
+      { kind: "vector", from: [0, 0], to: [4, 1], label: "ŷ−z", color: "#e27c89", animate: true },
+      { kind: "point", at: [1, 0], label: "primitive e₁", style: "integer" },
+      { kind: "point", at: [0, 1], label: "primitive e₂", style: "integer" },
     ]),
   },
   {
-    id: "theorem35-minimal-candidate",
-    kicker: "Theorem 35 · Minimal improving decomposition",
-    title: "Among improving displacements, minimize total ray mass",
+    id: "t35-pentagon-short-ray",
+    kicker: "Theorem 35 · Improving ray branch",
+    title: "One primitive extreme-ray step already improves",
     description:
-      "The proof chooses an improving integral displacement d=Σλᵢuᵢ minimizing Σλᵢ. Carathéodory lets us retain at most n ray directions.",
-    formula: "min{Σλᵢ:d=Σλᵢuᵢ∈ℤⁿ, cᵀd>0}",
+      "The horizontal ray has cᵀe₁=2>0. Hence y=z+e₁=(2,1) is feasible, integral, and strictly better, although it is not claimed to be globally optimal.",
+    formula: "y=z+e₁=(2,1),   cᵀy=5>3=cᵀz",
     insight:
-      "Minimality turns any coefficient of size at least one into a contradiction or an immediate local move.",
-    scene: coneScene([
-      { kind: "vector", from: [0, 0], to: [1, 0], label: "candidate d=e₁", color: "#f49a4a", animate: true },
-      { kind: "point", at: [1, 0], label: "cᵀd=2>0", style: "optimum", animateFrom: [4, 4] },
-      { kind: "line", from: [0, 0], to: [5, -10], label: "cᵀu=0", style: "objective", color: "#e27c89" },
-    ]),
-  },
-  {
-    id: "theorem35-improving-ray",
-    kicker: "Theorem 35 · First branch",
-    title: "A full primitive ray step already improves the objective",
-    description:
-      "For u¹=e₁, the objective gain is cᵀu¹=2>0. Therefore z+u¹ is feasible, integral, improving, and only one unit away.",
-    formula: "y=z+u¹=(2,1),   cᵀy=5>cᵀz=3",
-    insight:
-      "When a used extreme ray is improving, the proof can stop immediately with a move of norm at most Δ.",
+      "The local certificate is a better integer point, not necessarily an optimum. The actual optimum remains the far vertex (5,2).",
     scene: optimizationScene({
       primitives: [
         { kind: "point", at: z, label: "z", style: "integer" },
-        { kind: "point", at: localImprovement, label: "y=z+e₁", style: "optimum", animateFrom: z },
+        { kind: "point", at: localImprovement, label: "better integer point y", style: "integer", animateFrom: z },
+        { kind: "point", at: optimum, label: "optimal vertex ŷ", style: "optimum" },
         { kind: "vector", from: z, to: localImprovement, label: "u¹=e₁", color: "#f49a4a", animate: true },
-        { kind: "line", from: [0, 3], to: [3, -3], label: "level at cᵀz", style: "objective", color: "#8f88dc" },
-        { kind: "line", from: [0, 5], to: [3, -1], label: "higher level at cᵀy", style: "cut", color: "#e27c89" },
       ],
     }),
   },
   {
-    id: "theorem35-local-box",
+    id: "t35-pentagon-local-box",
     kicker: "Theorem 35 · nΔ neighborhood",
-    title: "The improving point lies in a universal local box",
+    title: "The global failure is witnessed inside a small local box",
     description:
-      "Here n=2 and Δ=1, so the theorem guarantees an improving integer point within radius two. The actual move has ℓ∞-length one.",
+      "Here n=2 and Δ=1, so the theorem guarantees some improvement within radius two around z. The displayed witness is only one unit away.",
     formula: "‖y−z‖∞=1≤nΔ=2",
     insight:
-      "A global optimization failure always has a bounded local witness whose radius depends only on dimension and the determinant parameter.",
+      "The nΔ box converts global nonoptimality into a finite local search certificate.",
     scene: optimizationScene({
       primitives: [
         {
@@ -164,107 +146,127 @@ const improvingRayStages: VisualizationStage[] = [
           fromPoints: [z, z, z, z],
         },
         { kind: "point", at: z, label: "z", style: "integer" },
-        { kind: "point", at: localImprovement, label: "improving y", style: "optimum" },
+        { kind: "point", at: localImprovement, label: "local improving y", style: "integer" },
+        { kind: "point", at: optimum, label: "global optimum vertex", style: "optimum" },
         { kind: "vector", from: z, to: localImprovement, label: "local certificate", color: "#f49a4a", animate: true },
       ],
     }),
   },
-  {
-    id: "theorem35-conclusion",
-    kicker: "Theorem 35 · Local optimality principle",
-    title: "No local improvement means global optimality",
-    description:
-      "Contrapositively, if no improving integer point exists in the nΔ-box around z, then z cannot be nonoptimal. The extreme-ray argument turns this finite neighborhood into an optimality certificate.",
-    formula: "z nonoptimal ⇒ ∃y: cᵀy>cᵀz and ‖y−z‖∞≤nΔ",
-    insight:
-      "Theorem 35 is an augmentation principle: global improvement can always be detected locally.",
-    scene: optimizationScene({
-      primitives: [
-        {
-          kind: "polygon",
-          points: [[-1, -1], [3, -1], [3, 3], [-1, 3]],
-          label: "search neighborhood",
-          style: "integer-hull",
-        },
-        { kind: "point", at: z, label: "current integer point z", style: "integer" },
-        { kind: "point", at: localImprovement, label: "better point", style: "optimum" },
-      ],
-    }),
-  },
 ];
 
-const removalStages: VisualizationStage[] = [
+const skewConeConstraints: Scene["constraints"] = [
+  { id: "lower", a: 0, b: -1, limit: 0, label: "u₂≥0", color: "#8f88dc" },
+  { id: "upper", a: -2, b: 1, limit: 0, label: "u₂≤2u₁", color: "#f49a4a" },
+];
+
+function skewConeScene(primitives: Primitive[], overrides: Partial<Scene> = {}): Scene {
+  return {
+    viewport: { x: [-0.6, 4.8], y: [-0.6, 4.8] },
+    constraints: skewConeConstraints,
+    showGrid: true,
+    showConstraints: true,
+    showFeasibleRegion: true,
+    showVertices: false,
+    showLattice: true,
+    axisLabels: { x: "u₁", y: "u₂" },
+    primitives,
+    caption: {
+      primary: "Skew displacement cone generated by (1,0) and (1,2)",
+      secondary: "the fractional coefficients still sum to integral displacements",
+    },
+    ...overrides,
+  };
+}
+
+const neutralRemovalStages: VisualizationStage[] = [
   {
-    id: "theorem35-removal-setup",
-    kicker: "Theorem 35 · Second branch",
-    title: "Some ray mass may be neutral rather than improving",
+    id: "t35-neutral-valid-setup",
+    kicker: "Theorem 35 · Neutral-ray branch",
+    title: "Use a decomposition whose total displacement is genuinely integral",
     description:
-      "Consider d=2e₁+0.5e₂ with objective c=e₂. The e₁ component does not change the objective, while the e₂ component creates the strict improvement.",
-    formula: "cᵀe₁=0,   cᵀe₂=1,   cᵀd=0.5>0",
+      "Let u¹=(1,0), u²=(1,2), and c=e₂. The coefficients 1.5 and 0.5 produce d=1.5u¹+0.5u²=(2,1), an integral improving displacement.",
+    formula: "d=1.5(1,0)+0.5(1,2)=(2,1)∈ℤ²",
     insight:
-      "A coefficient at least one does not always directly give an improving ray, so the proof needs a second branch.",
-    scene: coneScene([
-      { kind: "vector", from: [0, 0], to: [2, 0], label: "2e₁: neutral mass", color: "#8f88dc", animate: true },
-      { kind: "vector", from: [2, 0], to: [2, 0.5], label: "0.5e₂: improvement", color: "#f49a4a", animate: true },
-      { kind: "point", at: [2, 0.5], label: "d", style: "fractional" },
-      { kind: "line", from: [-0.5, 0], to: [5.5, 0], label: "cᵀu=0", style: "objective", color: "#e27c89" },
+      "This corrects the common pitfall that fractional ray coefficients need not individually produce fractional total displacement.",
+    scene: skewConeScene([
+      { kind: "vector", from: [0, 0], to: [4, 0], label: "u¹=(1,0)", color: "#8f88dc", animate: true },
+      { kind: "vector", from: [0, 0], to: [2, 4], label: "u²=(1,2)", color: "#f49a4a", animate: true },
+      { kind: "vector", from: [0, 0], to: [1.5, 0], label: "1.5u¹", color: "#8f88dc", animate: true },
+      { kind: "vector", from: [1.5, 0], to: [2, 1], label: "0.5u²", color: "#f49a4a", animate: true },
+      { kind: "point", at: [2, 1], label: "integral improving d", style: "integer" },
     ]),
   },
   {
-    id: "theorem35-remove-unit",
-    kicker: "Theorem 35 · Remove a full ray",
-    title: "Delete one neutral integral ray step",
+    id: "t35-neutral-objective",
+    kicker: "Theorem 35 · Identify neutral mass",
+    title: "The first ray is neutral, while the second creates improvement",
     description:
-      "Subtract e₁ from d. The new displacement d′=e₁+0.5e₂ remains integral in the original translated problem and still has positive objective gain.",
-    formula: "d′=d−e₁,   cᵀd′=cᵀd>0",
+      "For c=e₂, the horizontal primitive ray has zero objective gain, whereas u² raises the objective by two. Thus d is improving only because of its u² component.",
+    formula: "cᵀu¹=0,   cᵀu²=2,   cᵀd=1>0",
     insight:
-      "The total coefficient sum falls by one, contradicting the choice of a minimum-mass improving displacement.",
-    scene: coneScene([
-      { kind: "vector", from: [0, 0], to: [1, 0], label: "remaining e₁", color: "#8f88dc", animate: true },
-      { kind: "vector", from: [1, 0], to: [1, 0.5], label: "0.5e₂", color: "#f49a4a", animate: true },
-      { kind: "point", at: [2, 0.5], label: "old d", style: "fractional" },
-      { kind: "point", at: [1, 0.5], label: "smaller d′", style: "optimum", animateFrom: [2, 0.5] },
-      { kind: "vector", from: [2, 0.5], to: [1, 0.5], label: "subtract e₁", color: "#e27c89", animate: true },
+      "A coefficient at least one does not automatically yield an improving one-ray move; it may sit on a neutral direction.",
+    scene: skewConeScene([
+      { kind: "vector", from: [0, 0], to: [1.5, 0], label: "neutral 1.5u¹", color: "#8f88dc", animate: true },
+      { kind: "vector", from: [1.5, 0], to: [2, 1], label: "improving 0.5u²", color: "#f49a4a", animate: true },
+      { kind: "point", at: [2, 1], label: "d=(2,1)", style: "integer" },
+      { kind: "line", from: [-0.4, 0], to: [4.6, 0], label: "cᵀu=0", style: "objective", color: "#e27c89" },
     ]),
   },
   {
-    id: "theorem35-coefficients-small",
-    kicker: "Theorem 35 · Minimality consequence",
-    title: "A minimal improving decomposition has no large coefficient",
+    id: "t35-neutral-remove",
+    kicker: "Theorem 35 · Remove one full ray",
+    title: "Subtracting one neutral primitive ray preserves integrality and gain",
     description:
-      "If λⱼ≥1, either uʲ itself improves and yields the desired short move, or one full uʲ can be removed without destroying improvement. Therefore the hard case has λᵢ<1 for every used ray.",
-    formula: "minimality ⇒ 0≤λᵢ<1",
+      "Remove one copy of u¹. The remainder d′=0.5u¹+0.5u²=(1,1) is still integral and has the same positive objective gain, but its total coefficient mass is one smaller.",
+    formula: "d′=d−u¹=(1,1)∈ℤ²,   cᵀd′=cᵀd=1",
     insight:
-      "Now the same sum as in Theorem 34 gives ‖d‖∞≤kΔ≤nΔ.",
-    scene: coneScene([
-      { kind: "vector", from: [0, 0], to: [0.7, 0], label: "λ₁u¹, λ₁<1", color: "#8f88dc", animate: true },
-      { kind: "vector", from: [0.7, 0], to: [0.7, 0.6], label: "λ₂u², λ₂<1", color: "#f49a4a", animate: true },
-      { kind: "point", at: [0.7, 0.6], label: "minimal improving d", style: "optimum", animateFrom: [2, 0.5] },
+      "This contradicts minimum ray mass. Therefore the hard case cannot contain a coefficient λⱼ≥1 on a nonimproving ray.",
+    scene: skewConeScene([
+      { kind: "point", at: [2, 1], label: "old d=(2,1)", style: "integer" },
+      { kind: "point", at: [1, 1], label: "smaller d′=(1,1)", style: "optimum", animateFrom: [2, 1] },
+      { kind: "vector", from: [2, 1], to: [1, 1], label: "subtract u¹", color: "#e27c89", animate: true },
+      { kind: "vector", from: [0, 0], to: [0.5, 0], label: "0.5u¹", color: "#8f88dc", animate: true },
+      { kind: "vector", from: [0.5, 0], to: [1, 1], label: "0.5u²", color: "#f49a4a", animate: true },
+    ]),
+  },
+  {
+    id: "t35-neutral-conclusion",
+    kicker: "Theorem 35 · Coefficients below one",
+    title: "Minimality leaves only fractional pieces of bounded rays",
+    description:
+      "Either a full ray is itself improving, or a full neutral/nonpositive ray can be removed. Consequently every coefficient in a minimum-mass improving decomposition is below one.",
+    formula: "0≤λᵢ<1 ⇒ ‖d‖∞≤kΔ≤nΔ",
+    insight:
+      "The two proof branches now fit together without using a nonintegral displacement as the candidate.",
+    scene: skewConeScene([
       {
         kind: "polygon",
-        points: [[0, 0], [2, 0], [2, 2], [0, 2]],
-        label: "‖d‖∞≤nΔ",
+        points: [[0, 0], [4, 0], [4, 4], [0, 4]],
+        label: "universal nΔ region (n=2, Δ=2)",
         style: "integer-hull",
         fromPoints: [[0, 0], [0, 0], [0, 0], [0, 0]],
       },
+      { kind: "vector", from: [0, 0], to: [0.5, 0], label: "λ₁u¹", color: "#8f88dc", animate: true },
+      { kind: "vector", from: [0.5, 0], to: [1, 1], label: "λ₂u²", color: "#f49a4a", animate: true },
+      { kind: "point", at: [1, 1], label: "integral minimal d′", style: "optimum" },
     ]),
   },
 ];
 
-const improvingExample: VisualizationExample = {
-  id: "improving-extreme-ray",
-  title: "An extreme ray gives the local move",
+const vertexExample: VisualizationExample = {
+  id: "pentagon-vertex-optimum",
+  title: "Natural pentagon — local move toward a vertex optimum",
   description:
-    "See a distant optimum collapse to the one-step improving point z+e₁ inside the nΔ neighborhood.",
-  stages: improvingRayStages,
+    "A nonoptimal integer point, a unique optimal vertex, and the one-step improving extreme-ray certificate inside the nΔ box.",
+  stages: vertexImprovementStages,
 };
 
-const removalExample: VisualizationExample = {
-  id: "neutral-ray-removal",
-  title: "A neutral ray is removed by minimality",
+const neutralExample: VisualizationExample = {
+  id: "integral-neutral-removal",
+  title: "Skew cone — valid neutral-ray removal",
   description:
-    "Inspect the second branch of the proof: a full ray with no objective gain can be deleted from a minimum-mass improving displacement.",
-  stages: removalStages,
+    "A mathematically integral example of the second proof branch using rays (1,0) and (1,2).",
+  stages: neutralRemovalStages,
 };
 
 const visualization: VisualizationDefinition = {
@@ -274,28 +276,27 @@ const visualization: VisualizationDefinition = {
   chapter: "Extreme-ray proximity",
   order: 3,
   description:
-    "Turn nonoptimality into a bounded augmentation step by minimizing ray mass and using the two coefficient-reduction branches of the proof.",
+    "Use natural vertex geometry and a valid skew-cone decomposition to see why every nonoptimal integer point has a strictly better point within nΔ.",
   difficulty: "Advanced",
-  duration: 18,
+  duration: 19,
   accent: "#79c9c0",
   controls: {
     constraints: true,
     grid: true,
     lattice: true,
-    vertices: false,
+    vertices: true,
     labels: true,
   },
-  stages: improvingRayStages,
-  examples: [improvingExample, removalExample],
+  stages: vertexImprovementStages,
+  examples: [vertexExample, neutralExample],
   proof: {
     title: "Why every nonoptimal integer point has an nΔ-local improvement",
     steps: [
-      "Choose an optimal integer solution ŷ and form the sign-compatible cone C containing ŷ−z.",
-      "Let u¹,…,uᵗ be primitive integral extreme rays of C; Lemma 32 gives ‖uⁱ‖∞≤Δ.",
-      "Among all improving integral displacements d=Σλᵢuᵢ, choose one minimizing Σλᵢ.",
-      "Carathéodory reduces the support to k≤n rays.",
+      "Choose an optimal integer vertex ŷ when convenient and form the sign-compatible cone containing ŷ−z.",
+      "Let u¹,…,uᵗ be primitive integral extreme rays of the cone; Lemma 32 gives ‖uⁱ‖∞≤Δ.",
+      "Among all improving integral displacements d=Σλᵢuᵢ, choose one minimizing Σλᵢ, and use Carathéodory to keep at most n rays.",
       "If λⱼ≥1 and cᵀuʲ>0, then z+uʲ is already a feasible improving integer point at distance at most Δ.",
-      "If λⱼ≥1 and cᵀuʲ≤0, subtract one copy of uʲ; feasibility and strict improvement remain, contradicting minimality.",
+      "If λⱼ≥1 and cᵀuʲ≤0, subtract one copy of uʲ. The resulting displacement remains integral, feasible, and strictly improving, contradicting minimality.",
       "Hence every remaining λᵢ<1, so ‖d‖∞≤Σλᵢ‖uᵢ‖∞≤kΔ≤nΔ.",
     ],
   },
