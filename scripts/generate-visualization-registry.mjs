@@ -5,7 +5,12 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const visualizationsRoot = path.join(repositoryRoot, "visualizations");
 const outputPath = path.join(visualizationsRoot, "generated.ts");
-const ignoredFiles = new Set(["generated.ts", "registry.ts", "types.ts"]);
+const ignoredFiles = new Set([
+  "generated.ts",
+  "registry.ts",
+  "types.ts",
+  "duality-geometry.ts",
+]);
 const ignoredDirectories = new Set(["helpers"]);
 
 async function collectTypeScriptFiles(directory) {
