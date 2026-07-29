@@ -345,7 +345,7 @@ const visualization: VisualizationDefinition = {
   order: 2,
   description:
     "A picture-first gallery: inspect several polyhedra, reveal their finite representative set T, reveal their recession generators E, and then see how the two pieces generate the integer points.",
-  difficulty: "Introductory",
+  difficulty: "Foundation",
   duration: 12,
   accent: "#f49a4a",
   controls: {
