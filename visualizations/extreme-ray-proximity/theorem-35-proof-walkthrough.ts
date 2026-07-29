@@ -1,4 +1,4 @@
-import { theorem35ProofExample } from "@/visualizations/helpers/proof-guided-extreme-ray-examples";
+import { theorem35ExplicitConeStages } from "@/visualizations/helpers/explicit-proximity-cones";
 import type { VisualizationDefinition } from "@/visualizations/types";
 
 const visualization: VisualizationDefinition = {
@@ -6,14 +6,14 @@ const visualization: VisualizationDefinition = {
   title: "Theorem 35 — Proof Walkthrough",
   shortTitle: "Theorem 35 proof",
   chapter: "Extreme-ray proximity",
-  order: 7,
+  order: 8,
   description:
-    "Follow the minimal-ray-mass proof and both of its cases: an improving full ray gives the local point, while a nonimproving full ray contradicts minimality when removed.",
+    "Build the sign-compatible displacement cone explicitly from z and an optimal witness, translate its partial ray combinations back into P, and then follow both minimum-ray-mass cases to the nΔ bound.",
   difficulty: "Advanced",
-  duration: 18,
+  duration: 21,
   accent: "#79c9c0",
   controls: { constraints: true, grid: true, lattice: true, vertices: true, labels: true },
-  stages: theorem35ProofExample.stages,
+  stages: theorem35ExplicitConeStages,
   proof: {
     title: "Theorem 35 in the order used by the lecture notes",
     steps: [
