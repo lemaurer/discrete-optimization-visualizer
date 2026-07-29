@@ -1,4 +1,4 @@
-import { theorem34ProofExample } from "@/visualizations/helpers/proof-guided-extreme-ray-examples";
+import { theorem34ExplicitConeStages } from "@/visualizations/helpers/explicit-proximity-cones";
 import type { VisualizationDefinition } from "@/visualizations/types";
 
 const visualization: VisualizationDefinition = {
@@ -6,14 +6,14 @@ const visualization: VisualizationDefinition = {
   title: "Theorem 34 — Proof Walkthrough",
   shortTitle: "Theorem 34 proof",
   chapter: "Extreme-ray proximity",
-  order: 6,
+  order: 7,
   description:
-    "Follow the note proof from the row comparison to the sign-compatible cone, Carathéodory decomposition, integer ray absorption, and the nΔ remainder.",
+    "Follow the note proof from the row comparison to an explicitly drawn sign-compatible cone, its primitive extreme rays, the safe coefficient box from Remark 33, integer ray absorption, and the nΔ remainder.",
   difficulty: "Advanced",
-  duration: 17,
+  duration: 20,
   accent: "#8f88dc",
-  controls: { constraints: false, grid: true, lattice: true, vertices: true, labels: true },
-  stages: theorem34ProofExample.stages,
+  controls: { constraints: true, grid: true, lattice: true, vertices: true, labels: true },
+  stages: theorem34ExplicitConeStages,
   proof: {
     title: "Theorem 34 in the order used by the lecture notes",
     steps: [
