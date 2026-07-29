@@ -1,7 +1,9 @@
 import type {
   Mesh3D,
   PlanePatch3D,
+  Point2D,
   Point3D,
+  Primitive,
   Scene,
   Scene3D,
 } from "@/engine/types";
@@ -50,7 +52,6 @@ function prismMesh(opacity = 0.2): Mesh3D {
 const yStar3D: Point3D = [1.5, 2, 1];
 const xHat3D: Point3D = [0, 0, 1];
 const xStar3D: Point3D = [1, 1, 1];
-const firstRayCorner: Point3D = [1.5, 1.5, 1];
 
 const topFace: PlanePatch3D = {
   id: "optimal-top-face",
@@ -83,11 +84,42 @@ function prismConfiguration(overrides: Partial<Scene3D> = {}): Scene3D {
     integerAxes: ["x", "y", "z"],
     caption: {
       primary: "A genuine polyhedral prism with Δ=2",
-      secondary: "we choose the fractional LP optimum y* at a vertex of the optimal face",
+      secondary: "the displayed LP and IP optima are vertices",
     },
     ...overrides,
   };
 }
+
+const coneConstraints: Scene["constraints"] = [
+  { id: "cone-positive", a: -1, b: 0, limit: 0, label: "u₁≥0", color: "#79c9c0" },
+  { id: "cone-lower", a: 1, b: -1, limit: 0, label: "u₂≥u₁", color: "#8f88dc" },
+  { id: "cone-upper", a: -2, b: 1, limit: 0, label: "u₂≤2u₁", color: "#f49a4a" },
+];
+
+function coneScene(primitives: Primitive[] = []): Scene {
+  return {
+    viewport: { x: [-0.45, 3.3], y: [-0.45, 5.2] },
+    constraints: coneConstraints,
+    primitives,
+    showGrid: true,
+    showConstraints: true,
+    showFeasibleRegion: true,
+    showVertices: false,
+    showLattice: true,
+    axisLabels: { x: "u₁", y: "u₂" },
+    caption: {
+      primary: "The sign-compatible cone from the row partition",
+      secondary: "C=cone{(1,1),(1,2)} on the optimal face u₃=0",
+    },
+  };
+}
+
+const coneRayPrimitives: Primitive[] = [
+  { kind: "vector", from: [0, 0], to: [3, 3], label: "u¹=(1,1)", color: "#8f88dc", animate: true },
+  { kind: "vector", from: [0, 0], to: [2.5, 5], label: "u²=(1,2)", color: "#f49a4a", animate: true },
+  { kind: "point", at: [1, 1], label: "primitive u¹", style: "integer" },
+  { kind: "point", at: [1, 2], label: "primitive u²", style: "integer" },
+];
 
 const prismStages: VisualizationStage[] = [
   {
@@ -95,10 +127,10 @@ const prismStages: VisualizationStage[] = [
     kicker: "Theorem 34 · Vertex optimum",
     title: "Choose the LP optimum at a fractional vertex",
     description:
-      "The objective maximizes x₃. The entire top face is optimal, but the displayed LP optimum y*=(3/2,2,1) is one of its vertices, not an interior point. The integer optima x̂=(0,0,1) and x*=(1,1,1) are also vertices of P.",
+      "The objective maximizes x₃. The entire top face is optimal, but the displayed LP optimum y*=(3/2,2,1) is one of its vertices. The integer optima x̂=(0,0,1) and x*=(1,1,1) are also vertices.",
     formula: "max{x₃:x∈P},   y*=(3/2,2,1)",
     insight:
-      "A linear program always has an optimal vertex when an optimum exists. The theorem is stronger and also applies to nonvertex optimal points, but the example deliberately uses a vertex.",
+      "The proof compares x̂ and y* and then moves to displacement space, where the cone has its apex at the origin.",
     scene: scene3D(prismConfiguration({
       markers: [
         { id: "ystar", at: yStar3D, label: "fractional LP vertex y*", style: "fractional" },
@@ -108,24 +140,39 @@ const prismStages: VisualizationStage[] = [
     })),
   },
   {
-    id: "t34-prism-displacement",
-    kicker: "Theorem 34 · Difference cone",
-    title: "The optimal vertices are connected by safe cone directions",
+    id: "t34-prism-explicit-cone",
+    kicker: "Theorem 34 · Build C",
+    title: "The row comparison produces an explicit wedge in displacement space",
     description:
-      "From x̂, the two primitive directions u¹=(1,1,0) and u²=(0,1,0) remain on the optimal face. Their nonnegative combinations contain the displacement from x̂ to y*.",
-    formula: "y*−x̂=1.5u¹+0.5u²",
+      "On the optimal face, comparing every row at y* and x̂ gives u₁≥0, u₂≥u₁, and u₂≤2u₁. Their intersection is the shaded cone C.",
+    formula: "C={u:u₁≥0, u₁≤u₂≤2u₁, u₃=0}",
     insight:
-      "The shape is a prism rather than a box, so the extreme directions visibly follow actual edges of the optimal face.",
+      "This is the actual cone used by the proof. Its primitive extreme rays are (1,1,0) and (1,2,0).",
+    scene: coneScene([
+      ...coneRayPrimitives,
+      { kind: "vector", from: [0, 0], to: [1.5, 2], label: "d=y*−x̂∈C", color: "#e27c89", animate: true },
+      { kind: "point", at: [1.5, 2], label: "d=(3/2,2)", style: "optimum" },
+    ]),
+  },
+  {
+    id: "t34-prism-translate-cone",
+    kicker: "Theorem 34 · Translate directions back to x̂",
+    title: "The two cone rays follow the two edges leaving x̂ on the optimal face",
+    description:
+      "Translating u¹=(1,1,0) and u²=(1,2,0) to x̂ shows the geometric meaning of the displacement cone inside the original prism.",
+    formula: "y*−x̂=u¹+(1/2)u²",
+    insight:
+      "The entire translated cone need not lie in P. Remark 33 only guarantees partial combinations bounded by the coefficients of y*−x̂.",
     scene: scene3D(prismConfiguration({
-      meshes: [prismMesh(0.11)],
+      meshes: [prismMesh(0.1)],
       markers: [
         { id: "xhat", at: xHat3D, label: "x̂", style: "integer" },
         { id: "ystar", at: yStar3D, label: "y*", style: "fractional" },
       ],
       segments: [
-        { id: "u1", from: xHat3D, to: [1, 1, 1], label: "u¹=(1,1,0)", color: "#f49a4a", width: 4, animate: true },
-        { id: "u2", from: xHat3D, to: [0, 1, 1], label: "u²=(0,1,0)", color: "#8f88dc", width: 4, animate: true },
-        { id: "difference", from: xHat3D, to: yStar3D, label: "y*−x̂", color: "#e27c89", width: 3, dashed: true, animate: true },
+        { id: "u1", from: xHat3D, to: [1, 1, 1], label: "u¹=(1,1,0)", color: "#8f88dc", width: 4, animate: true },
+        { id: "u2", from: xHat3D, to: [1, 2, 1], label: "u²=(1,2,0)", color: "#f49a4a", width: 4, animate: true },
+        { id: "difference", from: xHat3D, to: yStar3D, label: "d∈C", color: "#e27c89", width: 3, dashed: true, animate: true },
       ],
     })),
   },
@@ -134,32 +181,32 @@ const prismStages: VisualizationStage[] = [
     kicker: "Theorem 34 · Carathéodory",
     title: "Only two primitive rays are needed here",
     description:
-      "The displacement is drawn as a broken path: first 1.5 copies of u¹, then 0.5 copies of u². In general Carathéodory guarantees at most n rays.",
-    formula: "y*−x̂=1.5u¹+0.5u²,   k=2≤n=3",
+      "The displacement is drawn as a broken path: one full copy of u¹ followed by one half copy of u². In general Carathéodory guarantees at most n rays.",
+    formula: "y*−x̂=u¹+(1/2)u²,   k=2≤n=3",
     insight:
       "Lemma 32 bounds each primitive ray by Δ; Carathéodory bounds how many different ray directions appear.",
     scene: scene3D(prismConfiguration({
       meshes: [prismMesh(0.1)],
       markers: [
         { id: "xhat", at: xHat3D, label: "x̂", style: "integer" },
-        { id: "corner", at: firstRayCorner, label: "x̂+1.5u¹", style: "vertex" },
+        { id: "corner", at: xStar3D, label: "x̂+u¹=x*", style: "optimum" },
         { id: "ystar", at: yStar3D, label: "y*", style: "fractional" },
       ],
       segments: [
-        { id: "part1", from: xHat3D, to: firstRayCorner, label: "1.5u¹", color: "#f49a4a", width: 4, animate: true },
-        { id: "part2", from: firstRayCorner, to: yStar3D, label: "0.5u²", color: "#8f88dc", width: 4, animate: true },
+        { id: "part1", from: xHat3D, to: xStar3D, label: "u¹", color: "#8f88dc", width: 4, animate: true },
+        { id: "part2", from: xStar3D, to: yStar3D, label: "(1/2)u²", color: "#f49a4a", width: 4, animate: true },
       ],
     })),
   },
   {
     id: "t34-prism-strip",
     kicker: "Theorem 34 · Strip a full ray",
-    title: "One integral ray step lands on another optimal vertex",
+    title: "The full integral ray copy becomes part of the new integer optimum",
     description:
-      "Since the coefficient of u¹ is 1.5, absorb one complete integral copy into x̂. The new point x*=x̂+u¹=(1,1,1) is again feasible, integral, optimal, and a vertex of this prism.",
-    formula: "x*=x̂+u¹,   y*−x*=0.5u¹+0.5u²",
+      "Absorb the coefficient-one copy of u¹ into x̂. The new point x*=x̂+u¹=(1,1,1) is feasible, integral, optimal, and a vertex of the prism.",
+    formula: "x*=x̂+u¹,   y*−x*=(1/2)u²",
     insight:
-      "This geometry makes the coefficient reduction literal: a full edge step moves from one optimal vertex to another.",
+      "After stripping, the entire remaining displacement is a fractional piece of one primitive cone ray.",
     scene: scene3D(prismConfiguration({
       meshes: [prismMesh(0.1)],
       markers: [
@@ -168,20 +215,20 @@ const prismStages: VisualizationStage[] = [
         { id: "ystar", at: yStar3D, label: "y*", style: "fractional" },
       ],
       segments: [
-        { id: "full-step", from: xHat3D, to: xStar3D, label: "one full u¹", color: "#f49a4a", width: 5, animate: true },
-        { id: "remainder", from: xStar3D, to: yStar3D, label: "fractional remainder", color: "#e27c89", width: 4, dashed: true, animate: true },
+        { id: "full-step", from: xHat3D, to: xStar3D, label: "one full u¹", color: "#8f88dc", width: 5, animate: true },
+        { id: "remainder", from: xStar3D, to: yStar3D, label: "(1/2)u²", color: "#e27c89", width: 4, dashed: true, animate: true },
       ],
     })),
   },
   {
     id: "t34-prism-bound",
     kicker: "Theorem 34 · Proximity bound",
-    title: "The remainder is a sum of short fractional ray pieces",
+    title: "The remainder is a short fractional ray piece",
     description:
-      "Both remaining coefficients are below one. Here the actual ℓ∞ gap is one, while the universal theorem gives nΔ=3·2=6.",
-    formula: "‖y*−x*‖∞=1≤Σλᵢ‖uᵢ‖∞≤nΔ=6",
+      "The remaining coefficient is below one. Here the actual ℓ∞ gap is one, while the universal theorem gives nΔ=3·2=6.",
+    formula: "‖y*−x*‖∞=1=‖(1/2)u²‖∞≤nΔ=6",
     insight:
-      "The universal bound is deliberately coarse: it depends only on dimension and subdeterminants, not on the detailed shape of this particular prism.",
+      "The universal bound is deliberately coarse because it depends only on dimension and subdeterminants.",
     scene: scene3D(prismConfiguration({
       meshes: [prismMesh(0.09)],
       markers: [
@@ -189,11 +236,11 @@ const prismStages: VisualizationStage[] = [
         { id: "ystar", at: yStar3D, label: "y*", style: "fractional" },
       ],
       segments: [
-        { id: "gap", from: xStar3D, to: yStar3D, label: "0.5u¹+0.5u²", color: "#e27c89", width: 5, animate: true },
+        { id: "gap", from: xStar3D, to: yStar3D, label: "(1/2)u²", color: "#e27c89", width: 5, animate: true },
       ],
       caption: {
         primary: "Actual gap 1; theorem radius nΔ=6",
-        secondary: "both selected optima are vertices",
+        secondary: "cone ray u²=(1,2,0), remaining coefficient 1/2",
       },
     })),
   },
@@ -207,8 +254,8 @@ const uniqueConstraints: Scene["constraints"] = [
   { id: "diagonal", a: -1, b: 1, limit: 0, label: "x₂≤x₁", color: "#e27c89" },
 ];
 
-const uniqueY: [number, number] = [1.5, 1.5];
-const uniqueX: [number, number] = [2, 1];
+const uniqueY: Point2D = [1.5, 1.5];
+const uniqueX: Point2D = [2, 1];
 
 function uniqueScene(overrides: Partial<Scene> = {}): Scene {
   return {
@@ -291,9 +338,9 @@ const uniqueVertexStages: VisualizationStage[] = [
 
 const prismExample: VisualizationExample = {
   id: "vertex-prism",
-  title: "3D prism — strip a full ray between vertices",
+  title: "3D prism — explicit proof cone and ray stripping",
   description:
-    "A natural prism where the chosen fractional LP optimum, the initial integer optimum, and the improved nearby integer optimum are all vertices.",
+    "A natural prism where the row-sign cone is drawn separately in displacement space and then translated back to the optimal face.",
   stages: prismStages,
 };
 
@@ -325,9 +372,9 @@ const visualization: VisualizationDefinition = {
   chapter: "Extreme-ray proximity",
   order: 2,
   description:
-    "Compare vertex optima in natural polyhedra, decompose their displacement into determinant-bounded rays, and absorb full integral steps until only an nΔ-bounded remainder remains.",
+    "Compare vertex optima, build the sign-compatible cone explicitly from the row partition, decompose the displacement into determinant-bounded rays, and absorb full integral steps until only an nΔ-bounded remainder remains.",
   difficulty: "Advanced",
-  duration: 20,
+  duration: 22,
   accent: "#8f88dc",
   controls: {
     constraints: true,

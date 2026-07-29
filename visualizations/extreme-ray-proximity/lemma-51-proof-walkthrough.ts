@@ -1,19 +1,25 @@
+import { lemma51ExplicitConeStages } from "@/visualizations/helpers/explicit-proximity-cones";
 import { lemma51ProofExample } from "@/visualizations/helpers/proof-guided-extreme-ray-examples";
 import type { VisualizationDefinition } from "@/visualizations/types";
+
+const stages = [
+  ...lemma51ExplicitConeStages,
+  ...lemma51ProofExample.stages.slice(1),
+];
 
 const visualization: VisualizationDefinition = {
   id: "lemma-51-proof-walkthrough",
   title: "Lemma 51 — Proof Walkthrough",
   shortTitle: "Lemma 51 proof",
   chapter: "Extreme-ray proximity",
-  order: 8,
+  order: 9,
   description:
-    "Follow the proof in the notes: fix the multiplier sign cone, rule out an integral summand by domination, then invoke Carathéodory and conclude μk<1 and ‖u‖∞≤mΔ.",
+    "First draw the actual lower-dimensional multiplier cone in w-space, identify its primitive extreme rays, and only then switch to coefficient coordinates for the domination and Carathéodory argument.",
   difficulty: "Advanced",
-  duration: 18,
+  duration: 22,
   accent: "#e27c89",
-  controls: { constraints: true, grid: true, lattice: true, vertices: false, labels: true },
-  stages: lemma51ProofExample.stages,
+  controls: { constraints: true, grid: true, lattice: true, vertices: true, labels: true },
+  stages,
   proof: {
     title: "Lemma 51 in the order used by the lecture notes",
     steps: [

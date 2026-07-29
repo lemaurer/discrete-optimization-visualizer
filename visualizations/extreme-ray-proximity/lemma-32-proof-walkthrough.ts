@@ -6,7 +6,7 @@ const visualization: VisualizationDefinition = {
   title: "Lemma 32 — Proof Walkthrough",
   shortTitle: "Lemma 32 proof",
   chapter: "Extreme-ray proximity",
-  order: 5,
+  order: 6,
   description:
     "Follow the lecture-note proof in order: tight rows, the largest coordinate, the Cramer determinant vector, primitive scaling, and the Δ bound.",
   difficulty: "Advanced",
