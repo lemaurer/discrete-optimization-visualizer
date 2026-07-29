@@ -2,9 +2,11 @@
 // Add visualization modules under visualizations/<chapter>/ and run npm run dev or npm run build.
 
 import visualization0 from "./cutting-planes/split-closure";
-import visualization1 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization1 from "./cutting-planes/split-inequality-description";
+import visualization2 from "./polyhedra/polyhedron-geometry.visualization";
 
 export const generatedVisualizations = [
   visualization0,
   visualization1,
+  visualization2,
 ];

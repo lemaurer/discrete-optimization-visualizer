@@ -169,6 +169,48 @@ export function VisualizationCanvas({
       context.stroke();
     }
 
+    scene.primitives
+      ?.filter((primitive) => primitive.kind === "polygon")
+      .forEach((primitive) => {
+        if (primitive.points.length < 3) return;
+        context.beginPath();
+        primitive.points.forEach((point, index) => {
+          if (index === 0) context.moveTo(tx(point[0]), ty(point[1]));
+          else context.lineTo(tx(point[0]), ty(point[1]));
+        });
+        context.closePath();
+        context.fillStyle =
+          primitive.style === "removed"
+            ? "rgba(226, 124, 137, .28)"
+            : primitive.style === "integer-hull"
+              ? "rgba(242, 139, 69, .18)"
+              : "rgba(121, 201, 192, .2)";
+        context.fill();
+        context.strokeStyle =
+          primitive.style === "removed"
+            ? COLORS.rose
+            : primitive.style === "integer-hull"
+              ? COLORS.orange
+              : COLORS.aqua;
+        context.lineWidth = 2;
+        if (primitive.style === "integer-hull") context.setLineDash([8, 6]);
+        context.stroke();
+        context.setLineDash([]);
+
+        if (primitive.label && showLabels) {
+          const center = primitive.points.reduce<Point2D>(
+            (sum, point) => [sum[0] + point[0], sum[1] + point[1]],
+            [0, 0],
+          );
+          center[0] /= primitive.points.length;
+          center[1] /= primitive.points.length;
+          context.font = "12px var(--font-geist-mono), monospace";
+          context.textAlign = "center";
+          context.fillStyle = COLORS.ink;
+          context.fillText(primitive.label, tx(center[0]), ty(center[1]));
+        }
+      });
+
     if (showLattice || scene.showLattice) {
       const allLattice: Point2D[] = [];
       for (let x = Math.ceil(scene.viewport.x[0]); x <= scene.viewport.x[1]; x += 1) {
@@ -215,6 +257,31 @@ export function VisualizationCanvas({
       context.stroke();
       context.globalAlpha = 1;
     });
+
+    scene.primitives
+      ?.filter((primitive) => primitive.kind === "line")
+      .forEach((primitive) => {
+        context.beginPath();
+        context.moveTo(tx(primitive.from[0]), ty(primitive.from[1]));
+        context.lineTo(tx(primitive.to[0]), ty(primitive.to[1]));
+        context.strokeStyle = primitive.color ?? COLORS.rose;
+        context.lineWidth = primitive.style === "constraint" ? 2 : 2.5;
+        if (primitive.style === "cut") context.setLineDash([8, 6]);
+        if (primitive.style === "objective") context.setLineDash([10, 7]);
+        context.stroke();
+        context.setLineDash([]);
+
+        if (primitive.label && showLabels) {
+          const midpoint: Point2D = [
+            (primitive.from[0] + primitive.to[0]) / 2,
+            (primitive.from[1] + primitive.to[1]) / 2,
+          ];
+          context.font = "12px var(--font-geist-mono), monospace";
+          context.textAlign = "left";
+          context.fillStyle = COLORS.ink;
+          context.fillText(primitive.label, tx(midpoint[0]) + 8, ty(midpoint[1]) - 8);
+        }
+      });
 
     if (scene.objective) {
       const direction = scene.objective.vector;
@@ -284,8 +351,36 @@ export function VisualizationCanvas({
       });
     }
 
-    scene.primitives?.forEach((primitive) => {
-      if (primitive.kind === "point") {
+    scene.primitives
+      ?.filter((primitive) => primitive.kind === "vector")
+      .forEach((primitive) => {
+        const from: Point2D = [tx(primitive.from[0]), ty(primitive.from[1])];
+        const to: Point2D = [tx(primitive.to[0]), ty(primitive.to[1])];
+        const color = primitive.color ?? COLORS.violet;
+        const angle = Math.atan2(to[1] - from[1], to[0] - from[0]);
+        context.beginPath();
+        context.moveTo(from[0], from[1]);
+        context.lineTo(to[0], to[1]);
+        context.strokeStyle = color;
+        context.lineWidth = 2.5;
+        context.stroke();
+        context.beginPath();
+        context.moveTo(to[0], to[1]);
+        context.lineTo(to[0] - 10 * Math.cos(angle - 0.45), to[1] - 10 * Math.sin(angle - 0.45));
+        context.lineTo(to[0] - 10 * Math.cos(angle + 0.45), to[1] - 10 * Math.sin(angle + 0.45));
+        context.closePath();
+        context.fillStyle = color;
+        context.fill();
+        if (primitive.label && showLabels) {
+          context.font = "12px var(--font-geist-mono), monospace";
+          context.textAlign = "left";
+          context.fillText(primitive.label, to[0] + 8, to[1] - 8);
+        }
+      });
+
+    scene.primitives
+      ?.filter((primitive) => primitive.kind === "point")
+      .forEach((primitive) => {
         const color =
           primitive.style === "fractional"
             ? COLORS.rose
@@ -305,8 +400,22 @@ export function VisualizationCanvas({
           context.fillStyle = color;
           context.fillText(primitive.label, tx(primitive.at[0]) + 11, ty(primitive.at[1]) - 11);
         }
-      }
-    });
+      });
+
+    scene.primitives
+      ?.filter((primitive) => primitive.kind === "label")
+      .forEach((primitive) => {
+        if (!showLabels) return;
+        context.font = "italic 15px Georgia, serif";
+        context.textAlign = "left";
+        context.fillStyle =
+          primitive.tone === "muted"
+            ? COLORS.muted
+            : primitive.tone === "accent"
+              ? COLORS.orange
+              : COLORS.ink;
+        context.fillText(primitive.text, tx(primitive.at[0]), ty(primitive.at[1]));
+      });
   }, [
     activeConstraints,
     animationProgress,

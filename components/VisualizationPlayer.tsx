@@ -43,6 +43,9 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
       setProgress(0);
       setFocusedVertex(null);
       const nextScene = definition.stages[bounded].scene;
+      setEnabledConstraints(
+        new Set(nextScene.constraints.map((constraint) => constraint.id)),
+      );
       if (nextScene.showLattice) setShowLattice(true);
       if (nextScene.showVertices) setShowVertices(true);
     },
@@ -60,8 +63,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
       setProgress(nextProgress);
       if (nextProgress >= 1) {
         if (stageIndex < definition.stages.length - 1) {
-          setStageIndex((value) => value + 1);
-          setProgress(0);
+          moveToStage(stageIndex + 1);
           startedAtRef.current = timestamp;
           frameRef.current = requestAnimationFrame(tick);
         } else {
@@ -75,7 +77,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-  }, [definition.stages.length, playing, stageIndex]);
+  }, [definition.stages.length, moveToStage, playing, stageIndex]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
