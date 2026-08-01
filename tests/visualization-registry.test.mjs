@@ -10,6 +10,7 @@ test("the generated registry includes every visualization module", async () => {
 
   assert.match(generated, /\.\/cutting-planes\/split-closure/);
   assert.match(generated, /\.\/cutting-planes\/split-inequality-description/);
+  assert.match(generated, /\.\/cutting-planes\/lift-and-project/);
   assert.match(generated, /\.\/formulations\/facility-location-formulations/);
   assert.match(generated, /\.\/graphs\/graph-definitions-and-branchings/);
   assert.match(generated, /\.\/graphs\/mst-greedy-and-dual-flooding/);
@@ -37,6 +38,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
   const [
     polyhedron,
     splitClosure,
+    liftAndProject,
     splitInequalities,
     facilityLocation,
     graphDefinitions,
@@ -53,6 +55,10 @@ test("visualization modules describe scenes instead of drawing them", async () =
     ),
     readFile(
       new URL("../visualizations/cutting-planes/split-closure.ts", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../visualizations/cutting-planes/lift-and-project.ts", import.meta.url),
       "utf8",
     ),
     readFile(
@@ -89,6 +95,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
   for (const moduleSource of [
     polyhedron,
     splitClosure,
+    liftAndProject,
     splitInequalities,
     facilityLocation,
     graphDefinitions,
@@ -108,6 +115,9 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(canvas, /primitive\.style === "assignment"/);
   assert.match(canvas, /primitive\.style === "graph-arc"/);
   assert.match(canvas, /primitive\.kind === "circle"/);
+  assert.match(liftAndProject, /x₁\(b−Ax\)≥0/);
+  assert.match(liftAndProject, /L₁\(P\)=projₓ\(M₁\)=conv\(P⁰∪P¹\)/);
+  assert.match(liftAndProject, /½x₁\+x₂≤1/);
   assert.match(facilityLocation, /P_FL ⊂ P_AFL/);
   assert.match(facilityLocation, /40 < 130 = 130/);
   assert.match(graphDefinitions, /branchings = I₁∩I₂/);
