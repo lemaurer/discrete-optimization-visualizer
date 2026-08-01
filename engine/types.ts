@@ -13,7 +13,18 @@ export interface PointPrimitive {
   kind: "point";
   at: Point2D;
   label?: string;
-  style?: "vertex" | "fractional" | "integer" | "optimum";
+  style?:
+    | "vertex"
+    | "fractional"
+    | "integer"
+    | "optimum"
+    | "facility"
+    | "facility-fractional"
+    | "facility-closed"
+    | "client"
+    | "graph-node"
+    | "graph-node-active"
+    | "graph-node-invalid";
   active?: boolean;
 }
 
@@ -29,7 +40,7 @@ export interface PolygonPrimitive {
   kind: "polygon";
   points: Point2D[];
   label?: string;
-  style?: "feasible" | "integer-hull" | "removed";
+  style?: "feasible" | "integer-hull" | "removed" | "component";
 }
 
 export interface LinePrimitive {
@@ -37,8 +48,29 @@ export interface LinePrimitive {
   from: Point2D;
   to: Point2D;
   label?: string;
-  style?: "constraint" | "objective" | "cut";
+  style?:
+    | "constraint"
+    | "objective"
+    | "cut"
+    | "assignment"
+    | "graph-edge"
+    | "graph-edge-rejected"
+    | "graph-arc"
+    | "graph-rejected";
   color?: string;
+  animationDelay?: number;
+  animate?: boolean;
+}
+
+export interface CirclePrimitive {
+  kind: "circle";
+  at: Point2D;
+  radius: number;
+  label?: string;
+  style?: "flood" | "component";
+  color?: string;
+  animationDelay?: number;
+  animate?: boolean;
 }
 
 export interface LabelPrimitive {
@@ -53,6 +85,7 @@ export type Primitive =
   | VectorPrimitive
   | PolygonPrimitive
   | LinePrimitive
+  | CirclePrimitive
   | LabelPrimitive;
 
 export interface Scene {
@@ -61,10 +94,15 @@ export interface Scene {
   primitives?: Primitive[];
   showFeasibleRegion?: boolean;
   showGrid?: boolean;
+  showAxes?: boolean;
   showLattice?: boolean;
   showVertices?: boolean;
   showActiveConstraints?: boolean;
   showIntegerHull?: boolean;
+  caption?: {
+    label: string;
+    detail: string;
+  };
   objective?: {
     vector: Point2D;
     label: string;

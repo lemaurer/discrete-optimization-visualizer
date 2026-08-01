@@ -3,10 +3,16 @@
 
 import visualization0 from "./cutting-planes/split-closure";
 import visualization1 from "./cutting-planes/split-inequality-description";
-import visualization2 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization2 from "./formulations/facility-location-formulations";
+import visualization3 from "./graphs/graph-definitions-and-branchings";
+import visualization4 from "./graphs/mst-greedy-and-dual-flooding";
+import visualization5 from "./polyhedra/polyhedron-geometry.visualization";
 
 export const generatedVisualizations = [
   visualization0,
   visualization1,
   visualization2,
+  visualization3,
+  visualization4,
+  visualization5,
 ];

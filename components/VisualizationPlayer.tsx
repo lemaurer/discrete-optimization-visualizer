@@ -98,6 +98,12 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
     () => ((stageIndex + progress) / definition.stages.length) * 100,
     [definition.stages.length, progress, stageIndex],
   );
+  const hasConstraintControls =
+    definition.controls?.constraints !== false && stage.scene.constraints.length > 0;
+  const hasLatticeControl = definition.controls?.lattice !== false;
+  const hasVertexControl = definition.controls?.vertices !== false;
+  const hasLabelControl = definition.controls?.labels !== false;
+  const hasDisplayControls = hasLatticeControl || hasVertexControl || hasLabelControl;
 
   const toggleConstraint = (id: string) => {
     setEnabledConstraints((current) => {
@@ -127,7 +133,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
           <div className="visual-toolbar">
             <div className="view-tabs" aria-label="Visualization view">
               <button className="view-tab view-tab--active" type="button">
-                Geometry
+                {definition.visualLabel ?? "Geometry"}
               </button>
               <button
                 className="view-tab"
@@ -165,6 +171,7 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
             <VisualizationCanvas
               animationProgress={progress}
               enabledConstraints={enabledConstraints}
+              isPlaying={playing}
               onVertexFocus={setFocusedVertex}
               scene={stage.scene}
               showLabels={showLabels}
@@ -184,40 +191,42 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
             )}
           </div>
 
-          <div className="constraint-strip">
-            <div className="constraint-title">
-              <span>Constraint set</span>
-              <button
-                onClick={() =>
-                  setEnabledConstraints(
-                    new Set(stage.scene.constraints.map((constraint) => constraint.id)),
-                  )
-                }
-                type="button"
-              >
-                Reset
-              </button>
+          {hasConstraintControls && (
+            <div className="constraint-strip">
+              <div className="constraint-title">
+                <span>Constraint set</span>
+                <button
+                  onClick={() =>
+                    setEnabledConstraints(
+                      new Set(stage.scene.constraints.map((constraint) => constraint.id)),
+                    )
+                  }
+                  type="button"
+                >
+                  Reset
+                </button>
+              </div>
+              <div className="constraint-chips">
+                {stage.scene.constraints.map((constraint) => {
+                  const enabled = enabledConstraints.has(constraint.id);
+                  return (
+                    <button
+                      aria-pressed={enabled}
+                      className={enabled ? "constraint-chip constraint-chip--active" : "constraint-chip"}
+                      key={constraint.id}
+                      onClick={() => toggleConstraint(constraint.id)}
+                      style={{ "--constraint-color": constraint.color } as React.CSSProperties}
+                      type="button"
+                    >
+                      <i />
+                      <span>{constraint.label}</span>
+                      <strong>{enabled ? "×" : "+"}</strong>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="constraint-chips">
-              {stage.scene.constraints.map((constraint) => {
-                const enabled = enabledConstraints.has(constraint.id);
-                return (
-                  <button
-                    aria-pressed={enabled}
-                    className={enabled ? "constraint-chip constraint-chip--active" : "constraint-chip"}
-                    key={constraint.id}
-                    onClick={() => toggleConstraint(constraint.id)}
-                    style={{ "--constraint-color": constraint.color } as React.CSSProperties}
-                    type="button"
-                  >
-                    <i />
-                    <span>{constraint.label}</span>
-                    <strong>{enabled ? "×" : "+"}</strong>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          )}
         </section>
 
         <aside className="explanation-panel">
@@ -238,42 +247,50 @@ export function VisualizationPlayer({ definition }: { definition: VisualizationD
             {stage.formula && <div className="formula-card">{stage.formula}</div>}
             {stage.insight && (
               <div className="insight-card">
-                <span>Geometric insight</span>
+                <span>{definition.insightLabel ?? "Geometric insight"}</span>
                 <p>{stage.insight}</p>
               </div>
             )}
           </div>
 
-          <div className="display-controls">
-            <span className="control-label">Display</span>
-            <label>
-              <input
-                checked={showLattice}
-                onChange={(event) => setShowLattice(event.target.checked)}
-                type="checkbox"
-              />
-              <i />
-              Integer lattice
-            </label>
-            <label>
-              <input
-                checked={showVertices}
-                onChange={(event) => setShowVertices(event.target.checked)}
-                type="checkbox"
-              />
-              <i />
-              Vertex labels
-            </label>
-            <label>
-              <input
-                checked={showLabels}
-                onChange={(event) => setShowLabels(event.target.checked)}
-                type="checkbox"
-              />
-              <i />
-              Annotations
-            </label>
-          </div>
+          {hasDisplayControls && (
+            <div className="display-controls">
+              <span className="control-label">Display</span>
+              {hasLatticeControl && (
+                <label>
+                  <input
+                    checked={showLattice}
+                    onChange={(event) => setShowLattice(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <i />
+                  Integer lattice
+                </label>
+              )}
+              {hasVertexControl && (
+                <label>
+                  <input
+                    checked={showVertices}
+                    onChange={(event) => setShowVertices(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <i />
+                  Vertex labels
+                </label>
+              )}
+              {hasLabelControl && (
+                <label>
+                  <input
+                    checked={showLabels}
+                    onChange={(event) => setShowLabels(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <i />
+                  Annotations
+                </label>
+              )}
+            </div>
+          )}
 
           <button
             aria-expanded={proofOpen}

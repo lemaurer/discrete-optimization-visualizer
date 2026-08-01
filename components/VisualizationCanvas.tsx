@@ -18,6 +18,7 @@ interface VisualizationCanvasProps {
   showLabels: boolean;
   zoom: number;
   animationProgress: number;
+  isPlaying: boolean;
   onVertexFocus: (value: { point: Point2D; active: Constraint[] } | null) => void;
 }
 
@@ -52,6 +53,7 @@ export function VisualizationCanvas({
   showLabels,
   zoom,
   animationProgress,
+  isPlaying,
   onVertexFocus,
 }: VisualizationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -126,30 +128,32 @@ export function VisualizationCanvas({
       context.globalAlpha = 1;
     }
 
-    context.strokeStyle = COLORS.ink;
-    context.lineWidth = 1.5;
-    context.beginPath();
-    context.moveTo(tx(scene.viewport.x[0]), ty(0));
-    context.lineTo(tx(scene.viewport.x[1]), ty(0));
-    context.moveTo(tx(0), ty(scene.viewport.y[0]));
-    context.lineTo(tx(0), ty(scene.viewport.y[1]));
-    context.stroke();
+    if (scene.showAxes !== false) {
+      context.strokeStyle = COLORS.ink;
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.moveTo(tx(scene.viewport.x[0]), ty(0));
+      context.lineTo(tx(scene.viewport.x[1]), ty(0));
+      context.moveTo(tx(0), ty(scene.viewport.y[0]));
+      context.lineTo(tx(0), ty(scene.viewport.y[1]));
+      context.stroke();
 
-    context.font = "11px var(--font-geist-mono), monospace";
-    context.fillStyle = COLORS.muted;
-    context.textAlign = "center";
-    for (let x = 1; x <= Math.floor(scene.viewport.x[1]); x += 1) {
-      context.fillText(String(x), tx(x), ty(0) + 18);
+      context.font = "11px var(--font-geist-mono), monospace";
+      context.fillStyle = COLORS.muted;
+      context.textAlign = "center";
+      for (let x = 1; x <= Math.floor(scene.viewport.x[1]); x += 1) {
+        context.fillText(String(x), tx(x), ty(0) + 18);
+      }
+      context.textAlign = "right";
+      for (let y = 1; y <= Math.floor(scene.viewport.y[1]); y += 1) {
+        context.fillText(String(y), tx(0) - 10, ty(y) + 4);
+      }
+      context.fillStyle = COLORS.ink;
+      context.font = "italic 14px Georgia, serif";
+      context.fillText("x₂", tx(0) - 8, ty(scene.viewport.y[1]) + 12);
+      context.textAlign = "left";
+      context.fillText("x₁", tx(scene.viewport.x[1]) - 15, ty(0) + 20);
     }
-    context.textAlign = "right";
-    for (let y = 1; y <= Math.floor(scene.viewport.y[1]); y += 1) {
-      context.fillText(String(y), tx(0) - 10, ty(y) + 4);
-    }
-    context.fillStyle = COLORS.ink;
-    context.font = "italic 14px Georgia, serif";
-    context.fillText("x₂", tx(0) - 8, ty(scene.viewport.y[1]) + 12);
-    context.textAlign = "left";
-    context.fillText("x₁", tx(scene.viewport.x[1]) - 15, ty(0) + 20);
 
     const feasible = clipToConstraints(activeConstraints, scene.viewport);
     if (scene.showFeasibleRegion && feasible.length > 2) {
@@ -184,6 +188,8 @@ export function VisualizationCanvas({
             ? "rgba(226, 124, 137, .28)"
             : primitive.style === "integer-hull"
               ? "rgba(242, 139, 69, .18)"
+              : primitive.style === "component"
+                ? "rgba(121, 201, 192, .08)"
               : "rgba(121, 201, 192, .2)";
         context.fill();
         context.strokeStyle =
@@ -191,9 +197,13 @@ export function VisualizationCanvas({
             ? COLORS.rose
             : primitive.style === "integer-hull"
               ? COLORS.orange
+              : primitive.style === "component"
+                ? COLORS.aqua
               : COLORS.aqua;
         context.lineWidth = 2;
-        if (primitive.style === "integer-hull") context.setLineDash([8, 6]);
+        if (primitive.style === "integer-hull" || primitive.style === "component") {
+          context.setLineDash([8, 6]);
+        }
         context.stroke();
         context.setLineDash([]);
 
@@ -259,19 +269,97 @@ export function VisualizationCanvas({
     });
 
     scene.primitives
+      ?.filter((primitive) => primitive.kind === "circle")
+      .forEach((primitive) => {
+        const delay = Math.min(0.85, Math.max(0, primitive.animationDelay ?? 0));
+        const circleProgress =
+          isPlaying && primitive.animate !== false
+            ? Math.min(1, Math.max(0, (animationProgress - delay) / Math.max(0.15, 1 - delay)))
+            : 1;
+        if (circleProgress <= 0) return;
+        const radius = primitive.radius * scale * circleProgress;
+        const color = primitive.color ?? COLORS.aqua;
+        context.beginPath();
+        context.arc(tx(primitive.at[0]), ty(primitive.at[1]), radius, 0, Math.PI * 2);
+        context.fillStyle = color;
+        context.globalAlpha = primitive.style === "component" ? 0.09 : 0.14;
+        context.fill();
+        context.globalAlpha = 0.72;
+        context.strokeStyle = color;
+        context.lineWidth = 1.8;
+        context.setLineDash(primitive.style === "component" ? [7, 6] : []);
+        context.stroke();
+        context.setLineDash([]);
+        context.globalAlpha = 1;
+        if (primitive.label && showLabels && circleProgress > 0.72) {
+          context.font = "12px var(--font-geist-mono), monospace";
+          context.textAlign = "center";
+          context.fillStyle = color;
+          context.fillText(
+            primitive.label,
+            tx(primitive.at[0]),
+            ty(primitive.at[1]) - radius - 8,
+          );
+        }
+      });
+
+    scene.primitives
       ?.filter((primitive) => primitive.kind === "line")
       .forEach((primitive) => {
+        const isAnimatedLine =
+          primitive.animate !== false &&
+          (primitive.style === "assignment" ||
+            primitive.style === "graph-edge" ||
+            primitive.style === "graph-edge-rejected" ||
+            primitive.style === "graph-arc" ||
+            primitive.style === "graph-rejected");
+        const delay = Math.min(0.85, Math.max(0, primitive.animationDelay ?? 0));
+        const lineProgress =
+          isAnimatedLine && isPlaying
+            ? Math.min(1, Math.max(0, (animationProgress - delay) / Math.max(0.15, 1 - delay)))
+            : 1;
+        const animatedTo: Point2D = [
+          primitive.from[0] + (primitive.to[0] - primitive.from[0]) * lineProgress,
+          primitive.from[1] + (primitive.to[1] - primitive.from[1]) * lineProgress,
+        ];
         context.beginPath();
         context.moveTo(tx(primitive.from[0]), ty(primitive.from[1]));
-        context.lineTo(tx(primitive.to[0]), ty(primitive.to[1]));
+        context.lineTo(tx(animatedTo[0]), ty(animatedTo[1]));
         context.strokeStyle = primitive.color ?? COLORS.rose;
-        context.lineWidth = primitive.style === "constraint" ? 2 : 2.5;
+        context.lineWidth =
+          primitive.style === "constraint" || isAnimatedLine ? 2 : 2.5;
         if (primitive.style === "cut") context.setLineDash([8, 6]);
         if (primitive.style === "objective") context.setLineDash([10, 7]);
+        if (primitive.style === "graph-rejected") context.setLineDash([6, 6]);
+        if (primitive.style === "graph-edge-rejected") context.setLineDash([6, 6]);
         context.stroke();
         context.setLineDash([]);
 
-        if (primitive.label && showLabels) {
+        if (
+          (primitive.style === "assignment" ||
+            primitive.style === "graph-arc" ||
+            primitive.style === "graph-rejected") &&
+          lineProgress > 0.12
+        ) {
+          const fromScreen: Point2D = [tx(primitive.from[0]), ty(primitive.from[1])];
+          const toScreen: Point2D = [tx(animatedTo[0]), ty(animatedTo[1])];
+          const angle = Math.atan2(toScreen[1] - fromScreen[1], toScreen[0] - fromScreen[0]);
+          context.beginPath();
+          context.moveTo(toScreen[0], toScreen[1]);
+          context.lineTo(
+            toScreen[0] - 8 * Math.cos(angle - 0.42),
+            toScreen[1] - 8 * Math.sin(angle - 0.42),
+          );
+          context.lineTo(
+            toScreen[0] - 8 * Math.cos(angle + 0.42),
+            toScreen[1] - 8 * Math.sin(angle + 0.42),
+          );
+          context.closePath();
+          context.fillStyle = primitive.color ?? COLORS.rose;
+          context.fill();
+        }
+
+        if (primitive.label && showLabels && lineProgress > 0.82) {
           const midpoint: Point2D = [
             (primitive.from[0] + primitive.to[0]) / 2,
             (primitive.from[1] + primitive.to[1]) / 2,
@@ -384,15 +472,50 @@ export function VisualizationCanvas({
         const color =
           primitive.style === "fractional"
             ? COLORS.rose
+            : primitive.style === "graph-node-active"
+              ? COLORS.aqua
+              : primitive.style === "graph-node-invalid"
+                ? COLORS.rose
+            : primitive.style === "facility"
+              ? COLORS.orange
+              : primitive.style === "facility-fractional"
+                ? COLORS.rose
+              : primitive.style === "facility-closed"
+                ? COLORS.muted
+                : primitive.style === "client"
+                  ? COLORS.aqua
             : primitive.style === "integer"
               ? COLORS.orange
               : COLORS.ink;
+        const px = tx(primitive.at[0]);
+        const py = ty(primitive.at[1]);
         context.beginPath();
-        context.arc(tx(primitive.at[0]), ty(primitive.at[1]), 7, 0, Math.PI * 2);
-        context.fillStyle = color;
+        if (
+          primitive.style === "facility" ||
+          primitive.style === "facility-fractional" ||
+          primitive.style === "facility-closed"
+        ) {
+          context.rect(px - 8, py - 8, 16, 16);
+        } else if (primitive.style === "client") {
+          context.moveTo(px, py - 8);
+          context.lineTo(px + 8, py);
+          context.lineTo(px, py + 8);
+          context.lineTo(px - 8, py);
+          context.closePath();
+        } else {
+          context.arc(px, py, 7, 0, Math.PI * 2);
+        }
+        context.fillStyle =
+          primitive.style === "facility-closed" || primitive.style === "graph-node"
+            ? COLORS.paper
+            : color;
         context.fill();
-        context.strokeStyle = COLORS.paper;
-        context.lineWidth = 2;
+        context.strokeStyle =
+          primitive.style === "facility-closed" || primitive.style === "graph-node"
+            ? color
+            : COLORS.paper;
+        context.lineWidth =
+          primitive.style === "facility-closed" || primitive.style === "graph-node" ? 3 : 2;
         context.stroke();
         if (primitive.label && showLabels) {
           context.font = "12px var(--font-geist-mono), monospace";
@@ -419,6 +542,7 @@ export function VisualizationCanvas({
   }, [
     activeConstraints,
     animationProgress,
+    isPlaying,
     scene,
     showLabels,
     showLattice,
@@ -451,15 +575,15 @@ export function VisualizationCanvas({
   return (
     <div className="canvas-wrap" ref={wrapRef}>
       <canvas
-        aria-label="Interactive coordinate plane showing the current polyhedron"
+        aria-label={scene.caption?.label ?? "Interactive coordinate plane showing the current polyhedron"}
         onPointerLeave={() => onVertexFocus(null)}
         onPointerMove={handlePointerMove}
         ref={canvasRef}
         role="img"
       />
       <div className="canvas-caption">
-        <span>ℝ² coordinate plane</span>
-        <span>{activeConstraints.length} active halfspaces</span>
+        <span>{scene.caption?.label ?? "ℝ² coordinate plane"}</span>
+        <span>{scene.caption?.detail ?? `${activeConstraints.length} active halfspaces`}</span>
       </div>
     </div>
   );

@@ -20,6 +20,8 @@ export interface VisualizationDefinition {
   difficulty: "Foundation" | "Intermediate" | "Advanced";
   duration: number;
   accent: string;
+  visualLabel?: string;
+  insightLabel?: string;
   stages: VisualizationStage[];
   controls?: {
     constraints?: boolean;
