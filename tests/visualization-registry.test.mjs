@@ -95,7 +95,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     mstDualFlooding,
   ]) {
     assert.match(moduleSource, /chapter:/);
-    assert.match(moduleSource, /stages:\s*\[/);
+    assert.match(moduleSource, /(?:stages:\s*\[|const stages(?::[^=]+)?\s*=)/);
     assert.match(moduleSource, /export default visualization/);
     assert.doesNotMatch(moduleSource, /<canvas|CanvasRenderingContext2D|getContext/);
   }
