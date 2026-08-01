@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- lesson, example, and stage changes intentionally reset coordinated player state */
+
 import {
   useCallback,
   useEffect,
@@ -458,7 +460,7 @@ export function VisualizationPlayer({
                 className="view-tab view-tab--active"
                 type="button"
               >
-                {isThreeDimensional ? "3D geometry" : "Geometry"}
+                {definition.visualLabel ?? (isThreeDimensional ? "3D geometry" : "Geometry")}
               </button>
               <button
                 className="view-tab"
@@ -558,6 +560,7 @@ export function VisualizationPlayer({
               <VisualizationCanvas
                 animationProgress={progress}
                 enabledConstraints={enabledConstraints}
+                isPlaying={playing}
                 onVertexFocus={setFocusedVertex}
                 scene={stage.scene}
                 showGrid={showGrid}
@@ -667,7 +670,7 @@ export function VisualizationPlayer({
             )}
             {stage.insight && (
               <div className="insight-card">
-                <span>Geometric insight</span>
+                <span>{definition.insightLabel ?? "Geometric insight"}</span>
                 <p>{stage.insight}</p>
               </div>
             )}

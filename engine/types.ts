@@ -14,7 +14,18 @@ export interface PointPrimitive {
   kind: "point";
   at: Point2D;
   label?: string;
-  style?: "vertex" | "fractional" | "integer" | "optimum";
+  style?:
+    | "vertex"
+    | "fractional"
+    | "integer"
+    | "optimum"
+    | "facility"
+    | "facility-fractional"
+    | "facility-closed"
+    | "client"
+    | "graph-node"
+    | "graph-node-active"
+    | "graph-node-invalid";
   active?: boolean;
   /** Optional starting location for stage playback. */
   animateFrom?: Point2D;
@@ -34,7 +45,7 @@ export interface PolygonPrimitive {
   kind: "polygon";
   points: Point2D[];
   label?: string;
-  style?: "feasible" | "integer-hull" | "removed";
+  style?: "feasible" | "integer-hull" | "removed" | "component";
   /** Optional starting polygon with the same number of vertices. */
   fromPoints?: Point2D[];
 }
@@ -44,9 +55,29 @@ export interface LinePrimitive {
   from: Point2D;
   to: Point2D;
   label?: string;
-  style?: "constraint" | "objective" | "cut";
+  style?:
+    | "constraint"
+    | "objective"
+    | "cut"
+    | "assignment"
+    | "graph-edge"
+    | "graph-edge-rejected"
+    | "graph-arc"
+    | "graph-rejected";
   color?: string;
+  animationDelay?: number;
   /** Reveal the segment from `from` to `to` during stage playback. */
+  animate?: boolean;
+}
+
+export interface CirclePrimitive {
+  kind: "circle";
+  at: Point2D;
+  radius: number;
+  label?: string;
+  style?: "flood" | "component";
+  color?: string;
+  animationDelay?: number;
   animate?: boolean;
 }
 
@@ -62,6 +93,7 @@ export type Primitive =
   | VectorPrimitive
   | PolygonPrimitive
   | LinePrimitive
+  | CirclePrimitive
   | LabelPrimitive;
 
 export type SplitProjectionPhase =
@@ -203,11 +235,11 @@ export interface Scene {
   showFeasibleRegion?: boolean;
   showConstraints?: boolean;
   showGrid?: boolean;
+  showAxes?: boolean;
   showLattice?: boolean;
   showVertices?: boolean;
   showActiveConstraints?: boolean;
   showIntegerHull?: boolean;
-
   /**
    * `uniform` preserves equal units on both axes. `stretch` fits each axis
    * independently and is useful for schematic projections with very different
@@ -235,8 +267,9 @@ export interface Scene {
   caption?: {
     primary?: string;
     secondary?: string;
+    label?: string;
+    detail?: string;
   };
-
   objective?: {
     vector: Point2D;
     label: string;

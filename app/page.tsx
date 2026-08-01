@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- chapter selection synchronizes the collapsible navigation */
+
 import { useEffect, useMemo, useState } from "react";
 import { VisualizationPlayer } from "@/components/VisualizationPlayer";
 import { visualizationRegistry } from "@/visualizations/registry";
