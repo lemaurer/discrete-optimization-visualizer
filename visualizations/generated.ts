@@ -19,16 +19,17 @@ import visualization14 from "./extreme-ray-proximity/theorem-35-local-improvemen
 import visualization15 from "./extreme-ray-proximity/theorem-35-proof-walkthrough";
 import visualization16 from "./formulations/facility-location-formulations";
 import visualization17 from "./graphs/graph-definitions-and-branchings";
-import visualization18 from "./graphs/mst-greedy-and-dual-flooding";
-import visualization19 from "./lp-duality/dual-linear-program";
-import visualization20 from "./lp-duality/dual-polyhedron";
-import visualization21 from "./lp-duality/farkas-lemma";
-import visualization22 from "./lp-duality/strong-complementary-slackness";
-import visualization23 from "./polyhedra/polyhedron-geometry.visualization";
-import visualization24 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization25 from "./total-unimodularity/affine-tu-decomposition";
-import visualization26 from "./total-unimodularity/integer-decomposition-property";
-import visualization27 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization18 from "./graphs/max-flow-min-cut-primal-dual";
+import visualization19 from "./graphs/mst-greedy-and-dual-flooding";
+import visualization20 from "./lp-duality/dual-linear-program";
+import visualization21 from "./lp-duality/dual-polyhedron";
+import visualization22 from "./lp-duality/farkas-lemma";
+import visualization23 from "./lp-duality/strong-complementary-slackness";
+import visualization24 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization25 from "./polyhedral-ties/finite-t-cone-examples";
+import visualization26 from "./total-unimodularity/affine-tu-decomposition";
+import visualization27 from "./total-unimodularity/integer-decomposition-property";
+import visualization28 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -59,4 +60,5 @@ export const generatedVisualizations = [
   visualization25,
   visualization26,
   visualization27,
+  visualization28,
 ];

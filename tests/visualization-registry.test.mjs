@@ -13,6 +13,7 @@ test("the generated registry includes every visualization module", async () => {
   assert.match(generated, /\.\/cutting-planes\/lift-and-project/);
   assert.match(generated, /\.\/formulations\/facility-location-formulations/);
   assert.match(generated, /\.\/graphs\/graph-definitions-and-branchings/);
+  assert.match(generated, /\.\/graphs\/max-flow-min-cut-primal-dual/);
   assert.match(generated, /\.\/graphs\/mst-greedy-and-dual-flooding/);
   assert.match(generated, /\.\/polyhedra\/polyhedron-geometry\.visualization/);
   assert.match(generated, /visualization0/);
@@ -42,6 +43,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     splitInequalities,
     facilityLocation,
     graphDefinitions,
+    maxFlowMinCut,
     mstDualFlooding,
     canvas,
   ] =
@@ -84,6 +86,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
     ),
     readFile(
       new URL(
+        "../visualizations/graphs/max-flow-min-cut-primal-dual.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
         "../visualizations/graphs/mst-greedy-and-dual-flooding.ts",
         import.meta.url,
       ),
@@ -99,6 +108,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     splitInequalities,
     facilityLocation,
     graphDefinitions,
+    maxFlowMinCut,
     mstDualFlooding,
   ]) {
     assert.match(moduleSource, /chapter:/);
@@ -122,6 +132,9 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(facilityLocation, /40 < 130 = 130/);
   assert.match(graphDefinitions, /branchings = I₁∩I₂/);
   assert.match(graphDefinitions, /weight\(T\*\)=2\+2\+2=6>5/);
+  assert.match(maxFlowMinCut, /max-flow=min-cut=23/);
+  assert.match(maxFlowMinCut, /S=Reach_Gf\(s\)=\{s,a,b,d\}/);
+  assert.match(maxFlowMinCut, /Σₑuₑzₑ=12\+7\+4=23/);
   assert.match(mstDualFlooding, /total dual value=5\+4\+3\+4\+1=17/);
   assert.match(mstDualFlooding, /dual value 17 ≤ OPT\(MST\) ≤ c\(T\)=17/);
 });
