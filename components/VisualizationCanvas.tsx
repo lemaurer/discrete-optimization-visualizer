@@ -137,6 +137,8 @@ function drawPrimitive(
   tx: (value: number) => number,
   ty: (value: number) => number,
   showLabels: boolean,
+  animationProgress: number,
+  isPlaying: boolean,
 ) {
   context.save();
 
@@ -162,8 +164,17 @@ function drawPrimitive(
             ? COLORS.violet
             : COLORS.ink;
 
-    const px = tx(primitive.at[0]);
-    const py = ty(primitive.at[1]);
+    const pointProgress = isPlaying ? animationProgress : 1;
+    const displayedPoint: Point2D = primitive.animateFrom
+      ? [
+          primitive.animateFrom[0] +
+            (primitive.at[0] - primitive.animateFrom[0]) * pointProgress,
+          primitive.animateFrom[1] +
+            (primitive.at[1] - primitive.animateFrom[1]) * pointProgress,
+        ]
+      : primitive.at;
+    const px = tx(displayedPoint[0]);
+    const py = ty(displayedPoint[1]);
     context.beginPath();
     if (
       primitive.style === "facility" ||
@@ -178,15 +189,17 @@ function drawPrimitive(
       context.lineTo(px - 8, py);
       context.closePath();
     } else {
-      context.arc(px, py, 7, 0, Math.PI * 2);
+      context.arc(px, py, primitive.style === "lattice" ? 3.2 : 7, 0, Math.PI * 2);
     }
     const outlined =
       primitive.style === "facility-closed" || primitive.style === "graph-node";
     context.fillStyle = outlined ? COLORS.paper : color;
     context.fill();
-    context.strokeStyle = outlined ? color : COLORS.paper;
-    context.lineWidth = outlined ? 3 : 2;
-    context.stroke();
+    if (primitive.style !== "lattice") {
+      context.strokeStyle = outlined ? color : COLORS.paper;
+      context.lineWidth = outlined ? 3 : 2;
+      context.stroke();
+    }
 
     if (primitive.label && showLabels) {
       context.font = "12px var(--font-geist-mono), monospace";
@@ -194,14 +207,24 @@ function drawPrimitive(
       context.fillStyle = color;
       context.fillText(
         primitive.label,
-        tx(primitive.at[0]) + 11,
-        ty(primitive.at[1]) - 11,
+        tx(displayedPoint[0]) + 11,
+        ty(displayedPoint[1]) - 11,
       );
     }
   }
 
   if (primitive.kind === "polygon" && primitive.points.length > 1) {
-    drawPolygonPath(context, primitive.points, tx, ty);
+    const polygonProgress = isPlaying ? animationProgress : 1;
+    const displayedPoints =
+      primitive.fromPoints?.length === primitive.points.length
+        ? primitive.points.map<Point2D>((point, index) => [
+            primitive.fromPoints![index][0] +
+              (point[0] - primitive.fromPoints![index][0]) * polygonProgress,
+            primitive.fromPoints![index][1] +
+              (point[1] - primitive.fromPoints![index][1]) * polygonProgress,
+          ])
+        : primitive.points;
+    drawPolygonPath(context, displayedPoints, tx, ty);
     const style = primitive.style ?? "feasible";
     context.fillStyle =
       style === "removed"
@@ -225,12 +248,12 @@ function drawPrimitive(
     context.stroke();
 
     if (primitive.label && showLabels) {
-      const center = primitive.points.reduce<Point2D>(
+      const center = displayedPoints.reduce<Point2D>(
         (sum, point) => [sum[0] + point[0], sum[1] + point[1]],
         [0, 0],
       );
-      center[0] /= primitive.points.length;
-      center[1] /= primitive.points.length;
+      center[0] /= displayedPoints.length;
+      center[1] /= displayedPoints.length;
       context.setLineDash([]);
       context.font = "11px var(--font-geist-mono), monospace";
       context.textAlign = "center";
@@ -264,19 +287,26 @@ function drawPrimitive(
 
   if (primitive.kind === "vector") {
     const color = primitive.color ?? COLORS.violet;
+    const vectorProgress = primitive.animate && isPlaying ? animationProgress : 1;
+    const displayedTo: Point2D = [
+      primitive.from[0] + (primitive.to[0] - primitive.from[0]) * vectorProgress,
+      primitive.from[1] + (primitive.to[1] - primitive.from[1]) * vectorProgress,
+    ];
     context.beginPath();
     context.moveTo(tx(primitive.from[0]), ty(primitive.from[1]));
-    context.lineTo(tx(primitive.to[0]), ty(primitive.to[1]));
+    context.lineTo(tx(displayedTo[0]), ty(displayedTo[1]));
     context.strokeStyle = color;
     context.lineWidth = 2.5;
     context.stroke();
-    drawArrowHead(context, primitive.from, primitive.to, tx, ty, color);
+    if (vectorProgress > 0.08) {
+      drawArrowHead(context, primitive.from, displayedTo, tx, ty, color);
+    }
 
     if (primitive.label && showLabels) {
       context.font = "11px var(--font-geist-mono), monospace";
       context.textAlign = "left";
       context.fillStyle = color;
-      context.fillText(primitive.label, tx(primitive.to[0]) + 8, ty(primitive.to[1]) - 8);
+      context.fillText(primitive.label, tx(displayedTo[0]) + 8, ty(displayedTo[1]) - 8);
     }
   }
 
@@ -804,7 +834,15 @@ export function VisualizationCanvas({
     scene.primitives
       ?.filter((primitive) => primitive.kind !== "line" && primitive.kind !== "circle")
       .forEach((primitive) =>
-        drawPrimitive(context, primitive, tx, ty, showLabels),
+        drawPrimitive(
+          context,
+          primitive,
+          tx,
+          ty,
+          showLabels,
+          animationProgress,
+          isPlaying,
+        ),
       );
   }, [
     activeConstraints,

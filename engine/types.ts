@@ -23,6 +23,7 @@ export interface PointPrimitive {
     | "facility-fractional"
     | "facility-closed"
     | "client"
+    | "lattice"
     | "graph-node"
     | "graph-node-active"
     | "graph-node-invalid";

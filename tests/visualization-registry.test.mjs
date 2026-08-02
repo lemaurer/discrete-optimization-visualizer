@@ -15,6 +15,8 @@ test("the generated registry includes every visualization module", async () => {
   assert.match(generated, /\.\/graphs\/graph-definitions-and-branchings/);
   assert.match(generated, /\.\/graphs\/max-flow-min-cut-primal-dual/);
   assert.match(generated, /\.\/graphs\/mst-greedy-and-dual-flooding/);
+  assert.match(generated, /\.\/lattice-theory\/lattice-foundations/);
+  assert.match(generated, /\.\/lattice-theory\/gram-schmidt-lll-reduction/);
   assert.match(generated, /\.\/polyhedra\/polyhedron-geometry\.visualization/);
   assert.match(generated, /visualization0/);
   assert.match(generated, /visualization1/);
@@ -45,6 +47,8 @@ test("visualization modules describe scenes instead of drawing them", async () =
     graphDefinitions,
     maxFlowMinCut,
     mstDualFlooding,
+    latticeFoundations,
+    gramSchmidtLll,
     canvas,
   ] =
     await Promise.all([
@@ -98,6 +102,20 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/lattice-foundations.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/gram-schmidt-lll-reduction.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -110,6 +128,8 @@ test("visualization modules describe scenes instead of drawing them", async () =
     graphDefinitions,
     maxFlowMinCut,
     mstDualFlooding,
+    latticeFoundations,
+    gramSchmidtLll,
   ]) {
     assert.match(moduleSource, /chapter:/);
     assert.match(moduleSource, /(?:stages:\s*\[|const stages(?::[^=]+)?\s*=)/);
@@ -137,4 +157,9 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(maxFlowMinCut, /Σₑuₑzₑ=12\+7\+4=23/);
   assert.match(mstDualFlooding, /total dual value=5\+4\+3\+4\+1=17/);
   assert.match(mstDualFlooding, /dual value 17 ≤ OPT\(MST\) ≤ c\(T\)=17/);
+  assert.match(latticeFoundations, /L\(B′\)=L\(B\)/);
+  assert.match(latticeFoundations, /det\(L\*\)=1\/det\(L\)/);
+  assert.match(gramSchmidtLll, /SizeReduce\(2,1\)/);
+  assert.match(gramSchmidtLll, /B̄₂=B₁B₂\/D=49\/2/);
+  assert.match(gramSchmidtLll, /δB₁=6≤B₂\+μ₂₁²B₁=25/);
 });
