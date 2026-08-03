@@ -11,6 +11,7 @@ test("the generated registry includes every visualization module", async () => {
   assert.match(generated, /\.\/cutting-planes\/split-closure/);
   assert.match(generated, /\.\/cutting-planes\/split-inequality-description/);
   assert.match(generated, /\.\/cutting-planes\/lift-and-project/);
+  assert.match(generated, /\.\/cutting-planes\/gomory-fractional-cut/);
   assert.match(generated, /\.\/formulations\/facility-location-formulations/);
   assert.match(generated, /\.\/graphs\/graph-definitions-and-branchings/);
   assert.match(generated, /\.\/graphs\/max-flow-min-cut-primal-dual/);
@@ -51,6 +52,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     latticeFoundations,
     gramSchmidtLll,
     minkowski,
+    gomory,
     canvas,
   ] =
     await Promise.all([
@@ -125,6 +127,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/cutting-planes/gomory-fractional-cut.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -140,6 +149,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     latticeFoundations,
     gramSchmidtLll,
     minkowski,
+    gomory,
   ]) {
     assert.match(moduleSource, /chapter:/);
     assert.match(moduleSource, /(?:stages:\s*\[|const stages(?::[^=]+)?\s*=)/);
@@ -175,4 +185,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(minkowski, /vol\(K\)>2ⁿdet\(L\)/);
   assert.match(minkowski, /½K−½K⊆K/);
   assert.match(minkowski, /x−y=\(3,1\)=b₁∈L∖\{0\}/);
+  assert.match(gomory, /Σⱼ f\(āⱼ\)xⱼ ≥ f\(b̄\)/);
+  assert.match(gomory, /½x₂\+½\(3−2x₁−x₂\)≥½   ⇔   x₁≤1/);
+  assert.match(gomory, /P¹ ⊋ conv\(P∩ℤ²\)/);
 });

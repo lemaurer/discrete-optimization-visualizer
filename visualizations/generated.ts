@@ -2,37 +2,38 @@
 // Add visualization modules under visualizations/<chapter>/ and run npm run dev or npm run build.
 
 import visualization0 from "./cutting-planes/cone-split";
-import visualization1 from "./cutting-planes/lift-and-project";
-import visualization2 from "./cutting-planes/repeated-split-closures";
-import visualization3 from "./cutting-planes/split-closure";
-import visualization4 from "./cutting-planes/split-inequality-14";
-import visualization5 from "./cutting-planes/split-inequality-description";
-import visualization6 from "./cutting-planes/split-membership-characterization";
-import visualization7 from "./extreme-ray-proximity/lemma-32-extreme-ray-bound";
-import visualization8 from "./extreme-ray-proximity/lemma-32-proof-walkthrough";
-import visualization9 from "./extreme-ray-proximity/lemma-51-multiplier-bound";
-import visualization10 from "./extreme-ray-proximity/lemma-51-proof-walkthrough";
-import visualization11 from "./extreme-ray-proximity/sign-compatible-cone";
-import visualization12 from "./extreme-ray-proximity/theorem-34-lp-ip-proximity";
-import visualization13 from "./extreme-ray-proximity/theorem-34-proof-walkthrough";
-import visualization14 from "./extreme-ray-proximity/theorem-35-local-improvement";
-import visualization15 from "./extreme-ray-proximity/theorem-35-proof-walkthrough";
-import visualization16 from "./formulations/facility-location-formulations";
-import visualization17 from "./graphs/graph-definitions-and-branchings";
-import visualization18 from "./graphs/max-flow-min-cut-primal-dual";
-import visualization19 from "./graphs/mst-greedy-and-dual-flooding";
-import visualization20 from "./lattice-theory/gram-schmidt-lll-reduction";
-import visualization21 from "./lattice-theory/lattice-foundations";
-import visualization22 from "./lattice-theory/minkowski-convex-body-theorem";
-import visualization23 from "./lp-duality/dual-linear-program";
-import visualization24 from "./lp-duality/dual-polyhedron";
-import visualization25 from "./lp-duality/farkas-lemma";
-import visualization26 from "./lp-duality/strong-complementary-slackness";
-import visualization27 from "./polyhedra/polyhedron-geometry.visualization";
-import visualization28 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization29 from "./total-unimodularity/affine-tu-decomposition";
-import visualization30 from "./total-unimodularity/integer-decomposition-property";
-import visualization31 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization1 from "./cutting-planes/gomory-fractional-cut";
+import visualization2 from "./cutting-planes/lift-and-project";
+import visualization3 from "./cutting-planes/repeated-split-closures";
+import visualization4 from "./cutting-planes/split-closure";
+import visualization5 from "./cutting-planes/split-inequality-14";
+import visualization6 from "./cutting-planes/split-inequality-description";
+import visualization7 from "./cutting-planes/split-membership-characterization";
+import visualization8 from "./extreme-ray-proximity/lemma-32-extreme-ray-bound";
+import visualization9 from "./extreme-ray-proximity/lemma-32-proof-walkthrough";
+import visualization10 from "./extreme-ray-proximity/lemma-51-multiplier-bound";
+import visualization11 from "./extreme-ray-proximity/lemma-51-proof-walkthrough";
+import visualization12 from "./extreme-ray-proximity/sign-compatible-cone";
+import visualization13 from "./extreme-ray-proximity/theorem-34-lp-ip-proximity";
+import visualization14 from "./extreme-ray-proximity/theorem-34-proof-walkthrough";
+import visualization15 from "./extreme-ray-proximity/theorem-35-local-improvement";
+import visualization16 from "./extreme-ray-proximity/theorem-35-proof-walkthrough";
+import visualization17 from "./formulations/facility-location-formulations";
+import visualization18 from "./graphs/graph-definitions-and-branchings";
+import visualization19 from "./graphs/max-flow-min-cut-primal-dual";
+import visualization20 from "./graphs/mst-greedy-and-dual-flooding";
+import visualization21 from "./lattice-theory/gram-schmidt-lll-reduction";
+import visualization22 from "./lattice-theory/lattice-foundations";
+import visualization23 from "./lattice-theory/minkowski-convex-body-theorem";
+import visualization24 from "./lp-duality/dual-linear-program";
+import visualization25 from "./lp-duality/dual-polyhedron";
+import visualization26 from "./lp-duality/farkas-lemma";
+import visualization27 from "./lp-duality/strong-complementary-slackness";
+import visualization28 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization29 from "./polyhedral-ties/finite-t-cone-examples";
+import visualization30 from "./total-unimodularity/affine-tu-decomposition";
+import visualization31 from "./total-unimodularity/integer-decomposition-property";
+import visualization32 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -67,4 +68,5 @@ export const generatedVisualizations = [
   visualization29,
   visualization30,
   visualization31,
+  visualization32,
 ];
