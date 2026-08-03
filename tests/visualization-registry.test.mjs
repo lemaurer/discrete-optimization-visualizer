@@ -17,6 +17,7 @@ test("the generated registry includes every visualization module", async () => {
   assert.match(generated, /\.\/graphs\/mst-greedy-and-dual-flooding/);
   assert.match(generated, /\.\/lattice-theory\/lattice-foundations/);
   assert.match(generated, /\.\/lattice-theory\/gram-schmidt-lll-reduction/);
+  assert.match(generated, /\.\/lattice-theory\/minkowski-convex-body-theorem/);
   assert.match(generated, /\.\/polyhedra\/polyhedron-geometry\.visualization/);
   assert.match(generated, /visualization0/);
   assert.match(generated, /visualization1/);
@@ -49,6 +50,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     mstDualFlooding,
     latticeFoundations,
     gramSchmidtLll,
+    minkowski,
     canvas,
   ] =
     await Promise.all([
@@ -116,6 +118,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/minkowski-convex-body-theorem.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -130,6 +139,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     mstDualFlooding,
     latticeFoundations,
     gramSchmidtLll,
+    minkowski,
   ]) {
     assert.match(moduleSource, /chapter:/);
     assert.match(moduleSource, /(?:stages:\s*\[|const stages(?::[^=]+)?\s*=)/);
@@ -162,4 +172,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(gramSchmidtLll, /SizeReduce\(2,1\)/);
   assert.match(gramSchmidtLll, /B̄₂=B₁B₂\/D=49\/2/);
   assert.match(gramSchmidtLll, /δB₁=6≤B₂\+μ₂₁²B₁=25/);
+  assert.match(minkowski, /vol\(K\)>2ⁿdet\(L\)/);
+  assert.match(minkowski, /½K−½K⊆K/);
+  assert.match(minkowski, /x−y=\(3,1\)=b₁∈L∖\{0\}/);
 });

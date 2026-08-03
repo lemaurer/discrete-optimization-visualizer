@@ -23,15 +23,16 @@ import visualization18 from "./graphs/max-flow-min-cut-primal-dual";
 import visualization19 from "./graphs/mst-greedy-and-dual-flooding";
 import visualization20 from "./lattice-theory/gram-schmidt-lll-reduction";
 import visualization21 from "./lattice-theory/lattice-foundations";
-import visualization22 from "./lp-duality/dual-linear-program";
-import visualization23 from "./lp-duality/dual-polyhedron";
-import visualization24 from "./lp-duality/farkas-lemma";
-import visualization25 from "./lp-duality/strong-complementary-slackness";
-import visualization26 from "./polyhedra/polyhedron-geometry.visualization";
-import visualization27 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization28 from "./total-unimodularity/affine-tu-decomposition";
-import visualization29 from "./total-unimodularity/integer-decomposition-property";
-import visualization30 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization22 from "./lattice-theory/minkowski-convex-body-theorem";
+import visualization23 from "./lp-duality/dual-linear-program";
+import visualization24 from "./lp-duality/dual-polyhedron";
+import visualization25 from "./lp-duality/farkas-lemma";
+import visualization26 from "./lp-duality/strong-complementary-slackness";
+import visualization27 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization28 from "./polyhedral-ties/finite-t-cone-examples";
+import visualization29 from "./total-unimodularity/affine-tu-decomposition";
+import visualization30 from "./total-unimodularity/integer-decomposition-property";
+import visualization31 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -65,4 +66,5 @@ export const generatedVisualizations = [
   visualization28,
   visualization29,
   visualization30,
+  visualization31,
 ];
