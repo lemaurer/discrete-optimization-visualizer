@@ -19,6 +19,7 @@ test("the generated registry includes every visualization module", async () => {
   assert.match(generated, /\.\/lattice-theory\/lattice-foundations/);
   assert.match(generated, /\.\/lattice-theory\/gram-schmidt-lll-reduction/);
   assert.match(generated, /\.\/lattice-theory\/minkowski-convex-body-theorem/);
+  assert.match(generated, /\.\/lattice-theory\/approximate-nearest-vector-anv/);
   assert.match(generated, /\.\/polyhedra\/polyhedron-geometry\.visualization/);
   assert.match(generated, /visualization0/);
   assert.match(generated, /visualization1/);
@@ -53,6 +54,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     gramSchmidtLll,
     minkowski,
     gomory,
+    anv,
     canvas,
   ] =
     await Promise.all([
@@ -134,6 +136,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/approximate-nearest-vector-anv.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -150,6 +159,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     gramSchmidtLll,
     minkowski,
     gomory,
+    anv,
   ]) {
     assert.match(moduleSource, /chapter:/);
     assert.match(moduleSource, /(?:stages:\s*\[|const stages(?::[^=]+)?\s*=)/);
@@ -188,4 +198,8 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(gomory, /Σⱼ f\(āⱼ\)xⱼ ≥ f\(b̄\)/);
   assert.match(gomory, /½x₂\+½\(3−2x₁−x₂\)≥½   ⇔   x₁≤1/);
   assert.match(gomory, /P¹ ⊋ conv\(P∩ℤ²\)/);
+  assert.match(anv, /zₙ₊₁=0, xₙ₊₁=x/);
+  assert.match(anv, /λᵢ=\[σᵢ,ᵢ\]−σᵢ,ᵢ/);
+  assert.match(anv, /b\*−x=\(0\.3,−0\.6\)=0\.15b̃₁−0\.30b̃₂/);
+  assert.match(anv, /‖b\*−x‖≤√\(2ⁿ−1\)·dist\(x,L\)/);
 });
