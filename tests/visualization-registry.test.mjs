@@ -57,6 +57,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     gomory,
     anv,
     voronoi,
+    latticeThreeDimensional,
     canvas,
   ] =
     await Promise.all([
@@ -152,6 +153,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/helpers/lattice-three-dimensional-examples.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -216,4 +224,11 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(voronoi, /v relevant ⇔ ±v are the unique shortest vectors in v\+2L/);
   assert.match(voronoi, /area\(Vor\(0\)\)=area\(𝒫\(B\)\)=det\(L\)/);
   assert.match(voronoi, /z is closest to q ⇔ q−z∈Vor\(0\)/);
+  assert.match(latticeThreeDimensional, /latticeFoundations3DExample/);
+  assert.match(latticeThreeDimensional, /gramSchmidtLll3DExample/);
+  assert.match(latticeThreeDimensional, /minkowski3DExample/);
+  assert.match(latticeThreeDimensional, /anv3DExample/);
+  assert.match(latticeThreeDimensional, /voronoi3DExample/);
+  assert.match(latticeThreeDimensional, /√\(2³−1\)=√7/);
+  assert.match(latticeThreeDimensional, /Vor\(0\)=\{x∈ℝ³:.*≤1\/2\}/);
 });
