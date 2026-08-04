@@ -23,20 +23,21 @@ import visualization18 from "./graphs/graph-definitions-and-branchings";
 import visualization19 from "./graphs/max-flow-min-cut-primal-dual";
 import visualization20 from "./graphs/mst-greedy-and-dual-flooding";
 import visualization21 from "./lattice-theory/approximate-nearest-vector-anv";
-import visualization22 from "./lattice-theory/gram-schmidt-lll-reduction";
-import visualization23 from "./lattice-theory/lattice-foundations";
-import visualization24 from "./lattice-theory/minkowski-convex-body-theorem";
-import visualization25 from "./lattice-theory/voronoi-cells";
-import visualization26 from "./lp-duality/dual-linear-program";
-import visualization27 from "./lp-duality/dual-polyhedron";
-import visualization28 from "./lp-duality/farkas-lemma";
-import visualization29 from "./lp-duality/strong-complementary-slackness";
-import visualization30 from "./polyhedra/ellipsoid-representation";
-import visualization31 from "./polyhedra/polyhedron-geometry.visualization";
-import visualization32 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization33 from "./total-unimodularity/affine-tu-decomposition";
-import visualization34 from "./total-unimodularity/integer-decomposition-property";
-import visualization35 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization22 from "./lattice-theory/fixip-algorithm";
+import visualization23 from "./lattice-theory/gram-schmidt-lll-reduction";
+import visualization24 from "./lattice-theory/lattice-foundations";
+import visualization25 from "./lattice-theory/minkowski-convex-body-theorem";
+import visualization26 from "./lattice-theory/voronoi-cells";
+import visualization27 from "./lp-duality/dual-linear-program";
+import visualization28 from "./lp-duality/dual-polyhedron";
+import visualization29 from "./lp-duality/farkas-lemma";
+import visualization30 from "./lp-duality/strong-complementary-slackness";
+import visualization31 from "./polyhedra/ellipsoid-representation";
+import visualization32 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization33 from "./polyhedral-ties/finite-t-cone-examples";
+import visualization34 from "./total-unimodularity/affine-tu-decomposition";
+import visualization35 from "./total-unimodularity/integer-decomposition-property";
+import visualization36 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -75,4 +76,5 @@ export const generatedVisualizations = [
   visualization33,
   visualization34,
   visualization35,
+  visualization36,
 ];

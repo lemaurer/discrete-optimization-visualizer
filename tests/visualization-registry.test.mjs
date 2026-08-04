@@ -59,6 +59,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     voronoi,
     latticeThreeDimensional,
     ellipsoid,
+    fixip,
     canvas,
   ] =
     await Promise.all([
@@ -168,6 +169,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/fixip-algorithm.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -242,5 +250,9 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(ellipsoid, /E\(c,Q\)=\{x:\(x−c\)ᵀQ⁻¹\(x−c\)≤1\}/);
   assert.match(ellipsoid, /P⊆\{x:aᵀ\(x−c₀\)≤0\}/);
   assert.match(ellipsoid, /√\(gᵀQₖg\)≤ε/);
+  assert.match(fixip, /FIXIPₙ\(K\)/);
+  assert.match(fixip, /c=bₙ\*=b₂\*=\(−1,1\)/);
+  assert.match(fixip, /H₋₁∩ℤ²=d₋₁\+Λ\(B′\)/);
+  assert.match(fixip, /T\(n\)≤N\(n\)·T\(n−1\)/);
   assert.match(canvas, /primitive\.kind === "ellipse"/);
 });
