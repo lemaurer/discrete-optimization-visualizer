@@ -262,6 +262,50 @@ function drawPrimitive(
     }
   }
 
+  if (primitive.kind === "ellipse") {
+    const ellipseProgress = isPlaying ? animationProgress : 1;
+    const start = primitive.animateFrom;
+    const at: Point2D = start
+      ? [
+          start.at[0] + (primitive.at[0] - start.at[0]) * ellipseProgress,
+          start.at[1] + (primitive.at[1] - start.at[1]) * ellipseProgress,
+        ]
+      : primitive.at;
+    const radiusX = start
+      ? start.radiusX + (primitive.radiusX - start.radiusX) * ellipseProgress
+      : primitive.radiusX;
+    const radiusY = start
+      ? start.radiusY + (primitive.radiusY - start.radiusY) * ellipseProgress
+      : primitive.radiusY;
+    const rotation = start
+      ? (start.rotation ?? 0) +
+        ((primitive.rotation ?? 0) - (start.rotation ?? 0)) * ellipseProgress
+      : (primitive.rotation ?? 0);
+    const color = primitive.color ?? COLORS.violet;
+    const xRadius = Math.abs(tx(at[0] + radiusX) - tx(at[0]));
+    const yRadius = Math.abs(ty(at[1] + radiusY) - ty(at[1]));
+
+    context.beginPath();
+    context.ellipse(tx(at[0]), ty(at[1]), xRadius, yRadius, -rotation, 0, Math.PI * 2);
+    context.fillStyle = color;
+    context.globalAlpha = primitive.opacity ?? 0.1;
+    context.fill();
+    context.globalAlpha = 0.9;
+    context.strokeStyle = color;
+    context.lineWidth = 2.4;
+    if (primitive.dashed) context.setLineDash([8, 6]);
+    context.stroke();
+    context.setLineDash([]);
+    context.globalAlpha = 1;
+
+    if (primitive.label && showLabels) {
+      context.font = "12px var(--font-geist-mono), monospace";
+      context.textAlign = "center";
+      context.fillStyle = color;
+      context.fillText(primitive.label, tx(at[0]), ty(at[1] + radiusY) - 9);
+    }
+  }
+
   if (primitive.kind === "line") {
     const color = primitive.color ?? (primitive.style === "cut" ? COLORS.rose : COLORS.ink);
     context.beginPath();

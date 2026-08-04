@@ -58,6 +58,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     anv,
     voronoi,
     latticeThreeDimensional,
+    ellipsoid,
     canvas,
   ] =
     await Promise.all([
@@ -160,6 +161,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/polyhedra/ellipsoid-representation.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -231,4 +239,8 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(latticeThreeDimensional, /voronoi3DExample/);
   assert.match(latticeThreeDimensional, /√\(2³−1\)=√7/);
   assert.match(latticeThreeDimensional, /Vor\(0\)=\{x∈ℝ³:.*≤1\/2\}/);
+  assert.match(ellipsoid, /E\(c,Q\)=\{x:\(x−c\)ᵀQ⁻¹\(x−c\)≤1\}/);
+  assert.match(ellipsoid, /P⊆\{x:aᵀ\(x−c₀\)≤0\}/);
+  assert.match(ellipsoid, /√\(gᵀQₖg\)≤ε/);
+  assert.match(canvas, /primitive\.kind === "ellipse"/);
 });
