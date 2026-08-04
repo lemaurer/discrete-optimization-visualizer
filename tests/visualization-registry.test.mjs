@@ -20,6 +20,7 @@ test("the generated registry includes every visualization module", async () => {
   assert.match(generated, /\.\/lattice-theory\/gram-schmidt-lll-reduction/);
   assert.match(generated, /\.\/lattice-theory\/minkowski-convex-body-theorem/);
   assert.match(generated, /\.\/lattice-theory\/approximate-nearest-vector-anv/);
+  assert.match(generated, /\.\/lattice-theory\/voronoi-cells/);
   assert.match(generated, /\.\/polyhedra\/polyhedron-geometry\.visualization/);
   assert.match(generated, /visualization0/);
   assert.match(generated, /visualization1/);
@@ -55,6 +56,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     minkowski,
     gomory,
     anv,
+    voronoi,
     canvas,
   ] =
     await Promise.all([
@@ -143,6 +145,13 @@ test("visualization modules describe scenes instead of drawing them", async () =
       ),
       "utf8",
     ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/voronoi-cells.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(new URL("../components/VisualizationCanvas.tsx", import.meta.url), "utf8"),
   ]);
 
@@ -160,6 +169,7 @@ test("visualization modules describe scenes instead of drawing them", async () =
     minkowski,
     gomory,
     anv,
+    voronoi,
   ]) {
     assert.match(moduleSource, /chapter:/);
     assert.match(moduleSource, /(?:stages:\s*\[|const stages(?::[^=]+)?\s*=)/);
@@ -202,4 +212,8 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(anv, /λᵢ=\[σᵢ,ᵢ\]−σᵢ,ᵢ/);
   assert.match(anv, /b\*−x=\(0\.3,−0\.6\)=0\.15b̃₁−0\.30b̃₂/);
   assert.match(anv, /‖b\*−x‖≤√\(2ⁿ−1\)·dist\(x,L\)/);
+  assert.match(voronoi, /vᵀx≤½‖v‖²/);
+  assert.match(voronoi, /v relevant ⇔ ±v are the unique shortest vectors in v\+2L/);
+  assert.match(voronoi, /area\(Vor\(0\)\)=area\(𝒫\(B\)\)=det\(L\)/);
+  assert.match(voronoi, /z is closest to q ⇔ q−z∈Vor\(0\)/);
 });
