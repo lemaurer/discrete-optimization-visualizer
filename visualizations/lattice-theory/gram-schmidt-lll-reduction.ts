@@ -1,4 +1,4 @@
-import baseVisualization from "./gram-schmidt-lll-reduction-base";
+import baseVisualization from "@/visualizations/helpers/gram-schmidt-lll-reduction-base";
 import type { VisualizationDefinition } from "@/visualizations/types";
 
 const stages = baseVisualization.stages.map((stage) => {
