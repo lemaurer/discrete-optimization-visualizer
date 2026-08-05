@@ -32,12 +32,13 @@ import visualization27 from "./lp-duality/dual-linear-program";
 import visualization28 from "./lp-duality/dual-polyhedron";
 import visualization29 from "./lp-duality/farkas-lemma";
 import visualization30 from "./lp-duality/strong-complementary-slackness";
-import visualization31 from "./polyhedra/ellipsoid-representation";
-import visualization32 from "./polyhedra/polyhedron-geometry.visualization";
-import visualization33 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization34 from "./total-unimodularity/affine-tu-decomposition";
-import visualization35 from "./total-unimodularity/integer-decomposition-property";
-import visualization36 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization31 from "./polyhedra/ellipsoid-matrix-geometry";
+import visualization32 from "./polyhedra/ellipsoid-representation";
+import visualization33 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization34 from "./polyhedral-ties/finite-t-cone-examples";
+import visualization35 from "./total-unimodularity/affine-tu-decomposition";
+import visualization36 from "./total-unimodularity/integer-decomposition-property";
+import visualization37 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -77,4 +78,5 @@ export const generatedVisualizations = [
   visualization34,
   visualization35,
   visualization36,
+  visualization37,
 ];
