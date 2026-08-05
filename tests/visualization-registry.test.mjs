@@ -11,9 +11,16 @@ test("the generated registry includes every visualization module", async () => {
   assert.match(generated, /\.\/cutting-planes\/split-closure/);
   assert.match(generated, /\.\/cutting-planes\/split-inequality-description/);
   assert.match(generated, /\.\/cutting-planes\/lift-and-project/);
+  assert.match(generated, /\.\/cutting-planes\/gomory-fractional-cut/);
   assert.match(generated, /\.\/formulations\/facility-location-formulations/);
   assert.match(generated, /\.\/graphs\/graph-definitions-and-branchings/);
+  assert.match(generated, /\.\/graphs\/max-flow-min-cut-primal-dual/);
   assert.match(generated, /\.\/graphs\/mst-greedy-and-dual-flooding/);
+  assert.match(generated, /\.\/lattice-theory\/lattice-foundations/);
+  assert.match(generated, /\.\/lattice-theory\/gram-schmidt-lll-reduction/);
+  assert.match(generated, /\.\/lattice-theory\/minkowski-convex-body-theorem/);
+  assert.match(generated, /\.\/lattice-theory\/approximate-nearest-vector-anv/);
+  assert.match(generated, /\.\/lattice-theory\/voronoi-cells/);
   assert.match(generated, /\.\/polyhedra\/polyhedron-geometry\.visualization/);
   assert.match(generated, /visualization0/);
   assert.match(generated, /visualization1/);
@@ -42,7 +49,17 @@ test("visualization modules describe scenes instead of drawing them", async () =
     splitInequalities,
     facilityLocation,
     graphDefinitions,
+    maxFlowMinCut,
     mstDualFlooding,
+    latticeFoundations,
+    gramSchmidtLll,
+    minkowski,
+    gomory,
+    anv,
+    voronoi,
+    latticeThreeDimensional,
+    ellipsoid,
+    fixip,
     canvas,
   ] =
     await Promise.all([
@@ -84,7 +101,77 @@ test("visualization modules describe scenes instead of drawing them", async () =
     ),
     readFile(
       new URL(
+        "../visualizations/graphs/max-flow-min-cut-primal-dual.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
         "../visualizations/graphs/mst-greedy-and-dual-flooding.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/lattice-foundations.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/gram-schmidt-lll-reduction.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/minkowski-convex-body-theorem.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/cutting-planes/gomory-fractional-cut.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/approximate-nearest-vector-anv.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/voronoi-cells.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/helpers/lattice-three-dimensional-examples.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/polyhedra/ellipsoid-representation.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../visualizations/lattice-theory/fixip-algorithm.ts",
         import.meta.url,
       ),
       "utf8",
@@ -99,7 +186,14 @@ test("visualization modules describe scenes instead of drawing them", async () =
     splitInequalities,
     facilityLocation,
     graphDefinitions,
+    maxFlowMinCut,
     mstDualFlooding,
+    latticeFoundations,
+    gramSchmidtLll,
+    minkowski,
+    gomory,
+    anv,
+    voronoi,
   ]) {
     assert.match(moduleSource, /chapter:/);
     assert.match(moduleSource, /(?:stages:\s*\[|const stages(?::[^=]+)?\s*=)/);
@@ -122,6 +216,43 @@ test("visualization modules describe scenes instead of drawing them", async () =
   assert.match(facilityLocation, /40 < 130 = 130/);
   assert.match(graphDefinitions, /branchings = I₁∩I₂/);
   assert.match(graphDefinitions, /weight\(T\*\)=2\+2\+2=6>5/);
+  assert.match(maxFlowMinCut, /max-flow=min-cut=23/);
+  assert.match(maxFlowMinCut, /S=Reach_Gf\(s\)=\{s,a,b,d\}/);
+  assert.match(maxFlowMinCut, /Σₑuₑzₑ=12\+7\+4=23/);
   assert.match(mstDualFlooding, /total dual value=5\+4\+3\+4\+1=17/);
   assert.match(mstDualFlooding, /dual value 17 ≤ OPT\(MST\) ≤ c\(T\)=17/);
+  assert.match(latticeFoundations, /L\(B′\)=L\(B\)/);
+  assert.match(latticeFoundations, /det\(L\*\)=1\/det\(L\)/);
+  assert.match(gramSchmidtLll, /SizeReduce\(2,1\)/);
+  assert.match(gramSchmidtLll, /B̄₂=B₁B₂\/D=49\/2/);
+  assert.match(gramSchmidtLll, /δB₁=6≤B₂\+μ₂₁²B₁=25/);
+  assert.match(minkowski, /vol\(K\)>2ⁿdet\(L\)/);
+  assert.match(minkowski, /½K−½K⊆K/);
+  assert.match(minkowski, /x−y=\(3,1\)=b₁∈L∖\{0\}/);
+  assert.match(gomory, /Σⱼ f\(āⱼ\)xⱼ ≥ f\(b̄\)/);
+  assert.match(gomory, /½x₂\+½\(3−2x₁−x₂\)≥½   ⇔   x₁≤1/);
+  assert.match(gomory, /P¹ ⊋ conv\(P∩ℤ²\)/);
+  assert.match(anv, /zₙ₊₁=0, xₙ₊₁=x/);
+  assert.match(anv, /λᵢ=\[σᵢ,ᵢ\]−σᵢ,ᵢ/);
+  assert.match(anv, /b\*−x=\(0\.3,−0\.6\)=0\.15b̃₁−0\.30b̃₂/);
+  assert.match(anv, /‖b\*−x‖≤√\(2ⁿ−1\)·dist\(x,L\)/);
+  assert.match(voronoi, /vᵀx≤½‖v‖²/);
+  assert.match(voronoi, /v relevant ⇔ ±v are the unique shortest vectors in v\+2L/);
+  assert.match(voronoi, /area\(Vor\(0\)\)=area\(𝒫\(B\)\)=det\(L\)/);
+  assert.match(voronoi, /z is closest to q ⇔ q−z∈Vor\(0\)/);
+  assert.match(latticeThreeDimensional, /latticeFoundations3DExample/);
+  assert.match(latticeThreeDimensional, /gramSchmidtLll3DExample/);
+  assert.match(latticeThreeDimensional, /minkowski3DExample/);
+  assert.match(latticeThreeDimensional, /anv3DExample/);
+  assert.match(latticeThreeDimensional, /voronoi3DExample/);
+  assert.match(latticeThreeDimensional, /√\(2³−1\)=√7/);
+  assert.match(latticeThreeDimensional, /Vor\(0\)=\{x∈ℝ³:.*≤1\/2\}/);
+  assert.match(ellipsoid, /E\(c,Q\)=\{x:\(x−c\)ᵀQ⁻¹\(x−c\)≤1\}/);
+  assert.match(ellipsoid, /P⊆\{x:aᵀ\(x−c₀\)≤0\}/);
+  assert.match(ellipsoid, /√\(gᵀQₖg\)≤ε/);
+  assert.match(fixip, /FIXIPₙ\(K\)/);
+  assert.match(fixip, /c=bₙ\*=b₂\*=\(−1,1\)/);
+  assert.match(fixip, /H₋₁∩ℤ²=d₋₁\+Λ\(B′\)/);
+  assert.match(fixip, /T\(n\)≤N\(n\)·T\(n−1\)/);
+  assert.match(canvas, /primitive\.kind === "ellipse"/);
 });

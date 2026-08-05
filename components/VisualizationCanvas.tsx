@@ -137,6 +137,8 @@ function drawPrimitive(
   tx: (value: number) => number,
   ty: (value: number) => number,
   showLabels: boolean,
+  animationProgress: number,
+  isPlaying: boolean,
 ) {
   context.save();
 
@@ -162,8 +164,17 @@ function drawPrimitive(
             ? COLORS.violet
             : COLORS.ink;
 
-    const px = tx(primitive.at[0]);
-    const py = ty(primitive.at[1]);
+    const pointProgress = isPlaying ? animationProgress : 1;
+    const displayedPoint: Point2D = primitive.animateFrom
+      ? [
+          primitive.animateFrom[0] +
+            (primitive.at[0] - primitive.animateFrom[0]) * pointProgress,
+          primitive.animateFrom[1] +
+            (primitive.at[1] - primitive.animateFrom[1]) * pointProgress,
+        ]
+      : primitive.at;
+    const px = tx(displayedPoint[0]);
+    const py = ty(displayedPoint[1]);
     context.beginPath();
     if (
       primitive.style === "facility" ||
@@ -178,15 +189,17 @@ function drawPrimitive(
       context.lineTo(px - 8, py);
       context.closePath();
     } else {
-      context.arc(px, py, 7, 0, Math.PI * 2);
+      context.arc(px, py, primitive.style === "lattice" ? 3.2 : 7, 0, Math.PI * 2);
     }
     const outlined =
       primitive.style === "facility-closed" || primitive.style === "graph-node";
     context.fillStyle = outlined ? COLORS.paper : color;
     context.fill();
-    context.strokeStyle = outlined ? color : COLORS.paper;
-    context.lineWidth = outlined ? 3 : 2;
-    context.stroke();
+    if (primitive.style !== "lattice") {
+      context.strokeStyle = outlined ? color : COLORS.paper;
+      context.lineWidth = outlined ? 3 : 2;
+      context.stroke();
+    }
 
     if (primitive.label && showLabels) {
       context.font = "12px var(--font-geist-mono), monospace";
@@ -194,14 +207,24 @@ function drawPrimitive(
       context.fillStyle = color;
       context.fillText(
         primitive.label,
-        tx(primitive.at[0]) + 11,
-        ty(primitive.at[1]) - 11,
+        tx(displayedPoint[0]) + 11,
+        ty(displayedPoint[1]) - 11,
       );
     }
   }
 
   if (primitive.kind === "polygon" && primitive.points.length > 1) {
-    drawPolygonPath(context, primitive.points, tx, ty);
+    const polygonProgress = isPlaying ? animationProgress : 1;
+    const displayedPoints =
+      primitive.fromPoints?.length === primitive.points.length
+        ? primitive.points.map<Point2D>((point, index) => [
+            primitive.fromPoints![index][0] +
+              (point[0] - primitive.fromPoints![index][0]) * polygonProgress,
+            primitive.fromPoints![index][1] +
+              (point[1] - primitive.fromPoints![index][1]) * polygonProgress,
+          ])
+        : primitive.points;
+    drawPolygonPath(context, displayedPoints, tx, ty);
     const style = primitive.style ?? "feasible";
     context.fillStyle =
       style === "removed"
@@ -225,17 +248,61 @@ function drawPrimitive(
     context.stroke();
 
     if (primitive.label && showLabels) {
-      const center = primitive.points.reduce<Point2D>(
+      const center = displayedPoints.reduce<Point2D>(
         (sum, point) => [sum[0] + point[0], sum[1] + point[1]],
         [0, 0],
       );
-      center[0] /= primitive.points.length;
-      center[1] /= primitive.points.length;
+      center[0] /= displayedPoints.length;
+      center[1] /= displayedPoints.length;
       context.setLineDash([]);
       context.font = "11px var(--font-geist-mono), monospace";
       context.textAlign = "center";
       context.fillStyle = context.strokeStyle;
       context.fillText(primitive.label, tx(center[0]), ty(center[1]) - 8);
+    }
+  }
+
+  if (primitive.kind === "ellipse") {
+    const ellipseProgress = isPlaying ? animationProgress : 1;
+    const start = primitive.animateFrom;
+    const at: Point2D = start
+      ? [
+          start.at[0] + (primitive.at[0] - start.at[0]) * ellipseProgress,
+          start.at[1] + (primitive.at[1] - start.at[1]) * ellipseProgress,
+        ]
+      : primitive.at;
+    const radiusX = start
+      ? start.radiusX + (primitive.radiusX - start.radiusX) * ellipseProgress
+      : primitive.radiusX;
+    const radiusY = start
+      ? start.radiusY + (primitive.radiusY - start.radiusY) * ellipseProgress
+      : primitive.radiusY;
+    const rotation = start
+      ? (start.rotation ?? 0) +
+        ((primitive.rotation ?? 0) - (start.rotation ?? 0)) * ellipseProgress
+      : (primitive.rotation ?? 0);
+    const color = primitive.color ?? COLORS.violet;
+    const xRadius = Math.abs(tx(at[0] + radiusX) - tx(at[0]));
+    const yRadius = Math.abs(ty(at[1] + radiusY) - ty(at[1]));
+
+    context.beginPath();
+    context.ellipse(tx(at[0]), ty(at[1]), xRadius, yRadius, -rotation, 0, Math.PI * 2);
+    context.fillStyle = color;
+    context.globalAlpha = primitive.opacity ?? 0.1;
+    context.fill();
+    context.globalAlpha = 0.9;
+    context.strokeStyle = color;
+    context.lineWidth = 2.4;
+    if (primitive.dashed) context.setLineDash([8, 6]);
+    context.stroke();
+    context.setLineDash([]);
+    context.globalAlpha = 1;
+
+    if (primitive.label && showLabels) {
+      context.font = "12px var(--font-geist-mono), monospace";
+      context.textAlign = "center";
+      context.fillStyle = color;
+      context.fillText(primitive.label, tx(at[0]), ty(at[1] + radiusY) - 9);
     }
   }
 
@@ -264,19 +331,26 @@ function drawPrimitive(
 
   if (primitive.kind === "vector") {
     const color = primitive.color ?? COLORS.violet;
+    const vectorProgress = primitive.animate && isPlaying ? animationProgress : 1;
+    const displayedTo: Point2D = [
+      primitive.from[0] + (primitive.to[0] - primitive.from[0]) * vectorProgress,
+      primitive.from[1] + (primitive.to[1] - primitive.from[1]) * vectorProgress,
+    ];
     context.beginPath();
     context.moveTo(tx(primitive.from[0]), ty(primitive.from[1]));
-    context.lineTo(tx(primitive.to[0]), ty(primitive.to[1]));
+    context.lineTo(tx(displayedTo[0]), ty(displayedTo[1]));
     context.strokeStyle = color;
     context.lineWidth = 2.5;
     context.stroke();
-    drawArrowHead(context, primitive.from, primitive.to, tx, ty, color);
+    if (vectorProgress > 0.08) {
+      drawArrowHead(context, primitive.from, displayedTo, tx, ty, color);
+    }
 
     if (primitive.label && showLabels) {
       context.font = "11px var(--font-geist-mono), monospace";
       context.textAlign = "left";
       context.fillStyle = color;
-      context.fillText(primitive.label, tx(primitive.to[0]) + 8, ty(primitive.to[1]) - 8);
+      context.fillText(primitive.label, tx(displayedTo[0]) + 8, ty(displayedTo[1]) - 8);
     }
   }
 
@@ -804,7 +878,15 @@ export function VisualizationCanvas({
     scene.primitives
       ?.filter((primitive) => primitive.kind !== "line" && primitive.kind !== "circle")
       .forEach((primitive) =>
-        drawPrimitive(context, primitive, tx, ty, showLabels),
+        drawPrimitive(
+          context,
+          primitive,
+          tx,
+          ty,
+          showLabels,
+          animationProgress,
+          isPlaying,
+        ),
       );
   }, [
     activeConstraints,

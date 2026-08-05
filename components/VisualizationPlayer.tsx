@@ -18,6 +18,13 @@ import {
   splitClosure3DExample,
   splitMembership3DExample,
 } from "@/visualizations/helpers/three-dimensional-examples";
+import {
+  anv3DExample,
+  gramSchmidtLll3DExample,
+  latticeFoundations3DExample,
+  minkowski3DExample,
+  voronoi3DExample,
+} from "@/visualizations/helpers/lattice-three-dimensional-examples";
 import type {
   VisualizationDefinition,
   VisualizationExample,
@@ -37,6 +44,11 @@ const THREE_DIMENSIONAL_EXAMPLES: Partial<
   "split-closure": splitClosure3DExample,
   "repeated-split-closures": infiniteRank3DExample,
   "split-membership-characterization": splitMembership3DExample,
+  "lattice-foundations": latticeFoundations3DExample,
+  "gram-schmidt-lll-reduction": gramSchmidtLll3DExample,
+  "minkowski-convex-body-theorem": minkowski3DExample,
+  "approximate-nearest-vector-anv": anv3DExample,
+  "lattice-voronoi-cells": voronoi3DExample,
 };
 
 function formatPoint(point: Point2D) {

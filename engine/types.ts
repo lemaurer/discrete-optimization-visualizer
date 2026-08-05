@@ -23,6 +23,7 @@ export interface PointPrimitive {
     | "facility-fractional"
     | "facility-closed"
     | "client"
+    | "lattice"
     | "graph-node"
     | "graph-node-active"
     | "graph-node-invalid";
@@ -81,6 +82,26 @@ export interface CirclePrimitive {
   animate?: boolean;
 }
 
+export interface EllipsePrimitive {
+  kind: "ellipse";
+  at: Point2D;
+  radiusX: number;
+  radiusY: number;
+  /** Counter-clockwise rotation in mathematical coordinates, in radians. */
+  rotation?: number;
+  label?: string;
+  color?: string;
+  dashed?: boolean;
+  opacity?: number;
+  /** Interpolate from a previous ellipsoid during stage playback. */
+  animateFrom?: {
+    at: Point2D;
+    radiusX: number;
+    radiusY: number;
+    rotation?: number;
+  };
+}
+
 export interface LabelPrimitive {
   kind: "label";
   at: Point2D;
@@ -94,6 +115,7 @@ export type Primitive =
   | PolygonPrimitive
   | LinePrimitive
   | CirclePrimitive
+  | EllipsePrimitive
   | LabelPrimitive;
 
 export type SplitProjectionPhase =
