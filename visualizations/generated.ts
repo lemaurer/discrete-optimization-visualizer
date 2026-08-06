@@ -22,24 +22,25 @@ import visualization17 from "./formulations/facility-location-formulations";
 import visualization18 from "./graphs/graph-definitions-and-branchings";
 import visualization19 from "./graphs/max-flow-min-cut-primal-dual";
 import visualization20 from "./graphs/mst-greedy-and-dual-flooding";
-import visualization21 from "./integral-generating-sets/integral-generating-sets";
-import visualization22 from "./lattice-theory/approximate-nearest-vector-anv";
-import visualization23 from "./lattice-theory/fixip-algorithm";
-import visualization24 from "./lattice-theory/gram-schmidt-lll-reduction";
-import visualization25 from "./lattice-theory/lattice-foundations";
-import visualization26 from "./lattice-theory/minkowski-convex-body-theorem";
-import visualization27 from "./lattice-theory/voronoi-cells";
-import visualization28 from "./lp-duality/dual-linear-program";
-import visualization29 from "./lp-duality/dual-polyhedron";
-import visualization30 from "./lp-duality/farkas-lemma";
-import visualization31 from "./lp-duality/strong-complementary-slackness";
-import visualization32 from "./polyhedra/ellipsoid-matrix-geometry";
-import visualization33 from "./polyhedra/ellipsoid-representation";
-import visualization34 from "./polyhedra/polyhedron-geometry.visualization";
-import visualization35 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization36 from "./total-unimodularity/affine-tu-decomposition";
-import visualization37 from "./total-unimodularity/integer-decomposition-property";
-import visualization38 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization21 from "./integral-generating-sets/integral-generating-sets-three-dimensional";
+import visualization22 from "./integral-generating-sets/integral-generating-sets";
+import visualization23 from "./lattice-theory/approximate-nearest-vector-anv";
+import visualization24 from "./lattice-theory/fixip-algorithm";
+import visualization25 from "./lattice-theory/gram-schmidt-lll-reduction";
+import visualization26 from "./lattice-theory/lattice-foundations";
+import visualization27 from "./lattice-theory/minkowski-convex-body-theorem";
+import visualization28 from "./lattice-theory/voronoi-cells";
+import visualization29 from "./lp-duality/dual-linear-program";
+import visualization30 from "./lp-duality/dual-polyhedron";
+import visualization31 from "./lp-duality/farkas-lemma";
+import visualization32 from "./lp-duality/strong-complementary-slackness";
+import visualization33 from "./polyhedra/ellipsoid-matrix-geometry";
+import visualization34 from "./polyhedra/ellipsoid-representation";
+import visualization35 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization36 from "./polyhedral-ties/finite-t-cone-examples";
+import visualization37 from "./total-unimodularity/affine-tu-decomposition";
+import visualization38 from "./total-unimodularity/integer-decomposition-property";
+import visualization39 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -81,4 +82,5 @@ export const generatedVisualizations = [
   visualization36,
   visualization37,
   visualization38,
+  visualization39,
 ];
