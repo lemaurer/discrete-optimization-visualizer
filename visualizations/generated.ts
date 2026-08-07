@@ -38,9 +38,14 @@ import visualization33 from "./polyhedra/ellipsoid-matrix-geometry";
 import visualization34 from "./polyhedra/ellipsoid-representation";
 import visualization35 from "./polyhedra/polyhedron-geometry.visualization";
 import visualization36 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization37 from "./total-unimodularity/affine-tu-decomposition";
-import visualization38 from "./total-unimodularity/integer-decomposition-property";
-import visualization39 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization37 from "./total-dual-integrality/tdi-divisible-coefficients";
+import visualization38 from "./total-dual-integrality/tdi-dual-optima";
+import visualization39 from "./total-dual-integrality/tdi-face-cones";
+import visualization40 from "./total-dual-integrality/tdi-implies-integral-polyhedron";
+import visualization41 from "./total-dual-integrality/tdi-representation-construction";
+import visualization42 from "./total-unimodularity/affine-tu-decomposition";
+import visualization43 from "./total-unimodularity/integer-decomposition-property";
+import visualization44 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -83,4 +88,9 @@ export const generatedVisualizations = [
   visualization37,
   visualization38,
   visualization39,
+  visualization40,
+  visualization41,
+  visualization42,
+  visualization43,
+  visualization44,
 ];
