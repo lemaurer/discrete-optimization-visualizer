@@ -114,63 +114,136 @@ const stages2D: VisualizationStage[] = [
 ];
 
 const triangle: [Point2D, Point2D, Point2D] = [[0,0],[2,0],[0,2]];
+const enlargedTriangle: [Point2D, Point2D, Point2D] = [[0,0],[2.3,0],[0,2.3]];
 const prismBoundaryPoints: Point3D[] = [
   [1,0,-1],[1,0,0],[1,0,1],
   [0,1,-1],[0,1,0],[0,1,1],
   [1,1,-1],[1,1,0],[1,1,1],
 ];
+const projectionLattice: Point3D[] = [
+  [0,0,-1.55],[1,0,-1.55],[2,0,-1.55],
+  [0,1,-1.55],[1,1,-1.55],[0,2,-1.55],
+];
+
+function prismScene3D(
+  meshes: NonNullable<ReturnType<typeof scene3D>["scene3D"]>["meshes"],
+  markers: ReturnType<typeof marker3D>[],
+  segments: ReturnType<typeof segment3D>[],
+  secondary: string,
+  planes: NonNullable<ReturnType<typeof scene3D>["scene3D"]>["planes"] = [],
+) {
+  return scene3D({
+    bounds: { x: [-0.45,2.55], y: [-0.45,2.55], z: [-1.8,1.8] },
+    axisLabels: { x: "x₁ integer", y: "x₂ integer", z: "u continuous" },
+    camera: { yaw: -0.8, pitch: 0.38, distance: 5.5 },
+    meshes,
+    planes,
+    markers,
+    segments,
+    showGround: true,
+    showIntegerLattice: true,
+    integerAxes: ["x","y"],
+    caption: { primary: "Lemma 148 · n=2,d=1", secondary },
+  });
+}
 
 const stages3D: VisualizationStage[] = [
   {
-    id: "lem148-3d-product",
-    kicker: "Lemma 148 · n=2,d=1",
-    title: "A bounded maximal lattice-free triangle extrudes to an infinite mixed-integer prism",
+    id: "lem148-3d-statement",
+    kicker: "Chapter 24 · Lemma 148 · n=2,d=1",
+    title: "The 3D example starts from the actual product S=K×ℝ",
     description:
-      "Take K=conv{(0,0),(2,0),(0,2)} in the two integer coordinates and one continuous coordinate u. The theorem says a maximal ℤ²-free S with this projection must equal K×ℝ.",
-    formula: "S=K×ℝ,   K=conv{(0,0),(2,0),(0,2)}",
-    insight: "The displayed prism is truncated at u=±1.5 only for visualization; mathematically it extends indefinitely.",
-    scene: scene3D({
-      bounds: { x: [-0.4,2.4], y: [-0.4,2.4], z: [-1.8,1.8] },
-      axisLabels: { x: "x₁", y: "x₂", z: "u" },
-      camera: { yaw: -0.8, pitch: 0.38, distance: 5.4 },
-      meshes: [triangularPrismMesh("prism", triangle, -1.5, 1.5, "visible part of K×ℝ", "ghost", 0.2)],
-      markers: prismBoundaryPoints.map((p,i) => marker3D(`p-${i}`, p, i === 4 ? "boundary lattice fiber" : undefined, "integer", 0.05)),
-      segments: [segment3D("fiber", [0.7,0.6,-1.45], [0.7,0.6,1.45], "complete ℝ-fiber", C.violet)],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y"],
-      caption: { primary: "Projection K and free continuous fibers", secondary: "Integer restrictions apply only to x₁,x₂; u is continuous." },
-    }),
+      "Take the maximal ℤ²-free triangle K=conv{(0,0),(2,0),(0,2)} and one continuous coordinate u. The displayed triangular prism is a finite truncation of S=K×ℝ; mathematically every vertical fiber continues indefinitely.",
+    formula: "K=conv{(0,0),(2,0),(0,2)},   S=K×ℝ",
+    insight:
+      "This is the direct 3D analogue of the 2D strip K=[0,1] extruded along one continuous coordinate.",
+    scene: prismScene3D(
+      [triangularPrismMesh("S", triangle, -1.5, 1.5, "visible S=K×ℝ", "ghost", 0.2)],
+      prismBoundaryPoints.map((p,i) => marker3D(`b-${i}`, p, i === 7 ? "boundary lattice fiber" : undefined, "integer", 0.047)),
+      [segment3D("fiber", [0.7,0.6,-1.45], [0.7,0.6,1.45], "entire ℝ-fiber", C.violet)],
+      "The integer restriction concerns x₁,x₂ only; u is genuinely continuous.",
+    ),
   },
   {
-    id: "lem148-3d-proof",
-    kicker: "Lemma 148 · Proof in one picture",
-    title: "Project, maximize K, re-extrude, then invoke maximality of S",
+    id: "lem148-3d-interior-projection",
+    kicker: "Proof step 1 · Project the interior",
+    title: "Project vertical interior fibers down to interior(K)",
     description:
-      "Projection preserves the interior obstruction, so K is ℤ²-free. A larger lattice-free K′ would make K′×ℝ a larger ℤ²-free set containing S, contradicting maximality.",
-    formula: "proj(S)=K,   K⊆K′ ⇒ S⊆K×ℝ⊆K′×ℝ",
-    insight: "The proof does not require boundedness; boundedness first appears in Lemma 149.",
-    scene: scene3D({
-      bounds: { x: [-0.4,2.4], y: [-0.4,2.4], z: [-1.8,1.8] },
-      axisLabels: { x: "x₁", y: "x₂", z: "u" },
-      camera: { yaw: -0.8, pitch: 0.38, distance: 5.4 },
-      meshes: [triangularPrismMesh("prism-proof", triangle, -1.5, 1.5, "S=K×ℝ", "solid", 0.17)],
-      markers: [marker3D("mid", [0.7,0.6,0], "interior fiber", "fractional", 0.08)],
-      segments: [
-        segment3D("up", [0.7,0.6,0], [0.7,0.6,1.45], "+u", C.aqua),
-        segment3D("down", [0.7,0.6,0], [0.7,0.6,-1.45], "−u", C.aqua),
+      "The proof uses proj(interior(S))=interior(K). The bottom triangle is a drawing of K on a separate projection plane; the vertical arrows show representative interior points of S mapped to their (x₁,x₂) coordinates.",
+    formula: "proj_{x₁,x₂}(interior(S))=interior(K)",
+    insight:
+      "The continuous coordinate disappears under projection, but openness of the interior is preserved in the integer-coordinate space.",
+    scene: prismScene3D(
+      [triangularPrismMesh("S-proj", triangle, -1.3, 1.3, "S", "ghost", 0.12)],
+      [
+        marker3D("p1", [0.6,0.5,0.8], "interior(S)", "fractional", 0.07),
+        marker3D("q1", [0.6,0.5,-1.55], "projection in interior(K)", "fractional", 0.07),
       ],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y"],
-      caption: { primary: "Maximality forces all continuous fibers", secondary: "No continuous-coordinate geometry remains after projection." },
-    }),
+      [segment3D("project", [0.6,0.5,0.8], [0.6,0.5,-1.55], "orthogonal projection", C.aqua)],
+      "Interior points project to interior points of K.",
+      [{ id: "K-plane", points: [[0,0,-1.56],[2,0,-1.56],[0,2,-1.56]], label: "K", color: C.aqua, opacity: 0.18 }],
+    ),
+  },
+  {
+    id: "lem148-3d-k-free",
+    kicker: "Proof step 2 · K is ℤ²-free",
+    title: "An interior lattice point of K would lift to a forbidden mixed-integer interior point",
+    description:
+      "The projected triangle has lattice points (1,0),(0,1),(1,1) on its facets but none in its relative interior. If z∈interior(K)∩ℤ² existed, the interior projection property would provide some u with (z,u)∈interior(S), contradicting ℤ²-freeness of S.",
+    formula: "interior(K)∩ℤ²=∅",
+    insight:
+      "This stage mirrors the 2D proof's boundary integers x=0,1: lattice points on ∂K are allowed, only interior lattice points are forbidden.",
+    scene: prismScene3D(
+      [triangularPrismMesh("S-kfree", triangle, -1.3, 1.3, "S", "ghost", 0.08)],
+      projectionLattice.map((p,i) => marker3D(`k-${i}`, p, i === 4 ? "(1,1) on ∂K" : undefined, i === 4 ? "optimum" : "integer", i === 4 ? 0.08 : 0.05)),
+      [],
+      "The separate projection plane makes the ordinary lattice-free triangle K visible inside the mixed-space picture.",
+      [{ id: "K-free-plane", points: [[0,0,-1.56],[2,0,-1.56],[0,2,-1.56]], label: "K is ℤ²-free", color: C.aqua, opacity: 0.2 }],
+    ),
+  },
+  {
+    id: "lem148-3d-maximal-extension",
+    kicker: "Proof step 3 · Hypothetical enlargement K⊂K′",
+    title: "Any larger lattice-free K′ would create a larger lattice-free product K′×ℝ",
+    description:
+      "The abstract proof places K inside some maximal lattice-free K′. In the concrete triangle example K is already maximal: pushing the slanted facet from x₁+x₂=2 to 2.3 immediately makes (1,1) an interior lattice point, so the attempted K′ is not lattice-free.",
+    formula: "K⊂K′ ⇒ S⊆K×ℝ⊂K′×ℝ;  here (1,1) blocks the enlargement",
+    insight:
+      "The removed outer prism visualizes exactly what would contradict maximality if a strict lattice-free K′ existed.",
+    scene: prismScene3D(
+      [
+        triangularPrismMesh("Kprime", enlargedTriangle, -1.5, 1.5, "attempted K′×ℝ", "removed", 0.16),
+        triangularPrismMesh("S-inner", triangle, -1.5, 1.5, "S", "ghost", 0.12),
+      ],
+      [marker3D("blocker", [1,1,0], "(1,1,u) becomes interior", "optimum", 0.1)],
+      [segment3D("push", [1,1,0], [1.15,1.15,0], "push x₁+x₂ facet", C.rose)],
+      "A strict enlargement of K would enlarge the entire product in mixed space.",
+    ),
+  },
+  {
+    id: "lem148-3d-maximality",
+    kicker: "Proof step 4 · Use maximality of S",
+    title: "The inclusion chain forces equality and all continuous fibers must be present",
+    description:
+      "In general S⊆K×ℝᵈ⊆K′×ℝᵈ. Both product sets are ℤⁿ-free whenever K and K′ are. Since S is maximal, the chain cannot contain a strict inclusion: S=K×ℝᵈ and K itself is maximal.",
+    formula: "S⊆K×ℝᵈ⊆K′×ℝᵈ, S maximal ⇒ S=K×ℝᵈ and K=K′",
+    insight:
+      "The 3D proof now follows every step of the 2D walkthrough instead of jumping directly from the prism to the conclusion.",
+    scene: prismScene3D(
+      [triangularPrismMesh("final-product", triangle, -1.5, 1.5, "S=K×ℝ", "solid", 0.17)],
+      [marker3D("inside", [0.6,0.6,0], "every fiber included", "fractional", 0.07)],
+      [
+        segment3D("up", [0.6,0.6,0], [0.6,0.6,1.45], "+u", C.aqua),
+        segment3D("down", [0.6,0.6,0], [0.6,0.6,-1.45], "−u", C.aqua),
+      ],
+      "Conclusion: no genuine geometry remains in the continuous direction; S is exactly a cylinder over K.",
+    ),
   },
 ];
 
 const examples: VisualizationExample[] = [
-  { id: "lem148-2d", title: "2D · n=1,d=1 proof", stages: stages2D },
-  { id: "lem148-3d", title: "3D · n=2,d=1 prism", stages: stages3D },
+  { id: "lem148-2d", title: "2D · n=1,d=1 full proof", stages: stages2D },
+  { id: "lem148-3d", title: "3D · n=2,d=1 full proof", stages: stages3D },
 ];
 
 const visualization: VisualizationDefinition = {
@@ -180,9 +253,9 @@ const visualization: VisualizationDefinition = {
   chapter: "Lattice-free polyhedra",
   order: 5,
   description:
-    "Visualizes the complete proof that a maximal full-dimensional ℤⁿ-free set in ℝ^{n+d} is the Cartesian product of a maximal ℤⁿ-free projection K⊂ℝⁿ with the entire continuous space ℝᵈ.",
+    "Visualizes the complete proof that a maximal full-dimensional ℤⁿ-free set in ℝ^{n+d} is the Cartesian product of a maximal ℤⁿ-free projection K⊂ℝⁿ with the entire continuous space ℝᵈ. Both 2D and 3D now expose all proof steps.",
   difficulty: "Intermediate",
-  duration: 10,
+  duration: 12,
   accent: C.aqua,
   visualLabel: "Projection and fibers",
   insightLabel: "Proof step",
