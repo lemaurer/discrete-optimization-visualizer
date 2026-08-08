@@ -86,57 +86,90 @@ for (let y = -1; y <= 1; y += 1) {
   }
 }
 
+function slabScene3D(
+  meshes: NonNullable<ReturnType<typeof scene3D>["scene3D"]>["meshes"],
+  markers: ReturnType<typeof marker3D>[],
+  segments: ReturnType<typeof segment3D>[],
+  secondary: string,
+) {
+  return scene3D({
+    bounds: { x: [-0.6,1.6], y: [-1.6,1.6], z: [-1.6,1.6] },
+    axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
+    camera: { yaw: -0.8, pitch: 0.42, distance: 5.0 },
+    meshes,
+    markers,
+    segments,
+    showGround: true,
+    showIntegerLattice: true,
+    integerAxes: ["x","y","z"],
+    caption: { primary: "Definition 147 · same geometry in ℝ³", secondary },
+  });
+}
+
 const stages3D: VisualizationStage[] = [
   {
-    id: "znfree-3d-slab",
-    kicker: "Definition 147 · 3D",
-    title: "In three dimensions a split becomes a lattice-free slab",
+    id: "znfree-3d-definition",
+    kicker: "Chapter 24 · Definition 147 · 3D",
+    title: "The definition is identical: the interior of the slab contains no lattice point",
     description:
-      "The visible box is only a truncation of the infinite slab 0≤x₁≤1. Integer points may lie on the boundary planes x₁=0 and x₁=1, but none occur in its interior.",
-    formula: "S={x∈ℝ³:0≤x₁≤1}",
-    insight: "The free directions along x₂ and x₃ do not create interior integer points because x₁ would have to be an integer strictly between 0 and 1.",
-    scene: scene3D({
-      bounds: { x: [-0.4,1.4], y: [-1.6,1.6], z: [-1.6,1.6] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.8, pitch: 0.42, distance: 5.0 },
-      meshes: [boxMesh("slab", [0,-1.4,-1.4], [1,1.4,1.4], "visible slab", "ghost", 0.18)],
-      markers: boundary3D.map((p,i) => marker3D(`b-${i}`, p, undefined, "integer", 0.045)),
-      segments: [
-        segment3D("free-y", [0.5,-1.3,0], [0.5,1.3,0], "free x₂ direction", C.aqua),
-        segment3D("free-z", [0.5,0,-1.3], [0.5,0,1.3], "free x₃ direction", C.violet),
-      ],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "3D maximal lattice-free split", secondary: "The two bounding hyperplanes are consecutive integer levels." },
-    }),
+      "The displayed box truncates the infinite slab S={x:0≤x₁≤1}. Every lattice point with x₁=0 or x₁=1 lies on a boundary plane, while an interior point would require an integer x₁ strictly between 0 and 1.",
+    formula: "S={x∈ℝ³:0≤x₁≤1},   interior(S)∩ℤ³=∅",
+    insight:
+      "This stage is the literal 3D version of the first 2D strip stage: same two boundary levels, with one additional free direction.",
+    scene: slabScene3D(
+      [boxMesh("slab", [0,-1.4,-1.4], [1,1.4,1.4], "visible part of S", "ghost", 0.2)],
+      boundary3D.map((p,i) => marker3D(`b-${i}`, p, i === 4 ? "boundary lattice points" : undefined, "integer", 0.047)),
+      [],
+      "Boundary lattice points are allowed; the open region 0<x₁<1 contains none.",
+    ),
   },
   {
-    id: "znfree-3d-maximality",
-    kicker: "Definition 147 · Why the slab is maximal",
-    title: "Move either boundary outward and a boundary lattice point enters the interior",
+    id: "znfree-3d-nonmaximal",
+    kicker: "Definition 147 · Maximality · 3D",
+    title: "The smaller slab 0.2≤x₁≤0.8 is lattice-free but not maximal",
     description:
-      "If the plane x₁=0 is shifted to x₁<0, points with x₁=0 become interior. The same happens on the x₁=1 side. Thus the split cannot be enlarged in either normal direction while remaining lattice-free.",
-    formula: "strict enlargement ⇒ interior(S′)∩ℤ³≠∅",
-    insight: "This is the geometric meaning of maximality used later in Lovász's lemma.",
-    scene: scene3D({
-      bounds: { x: [-0.6,1.6], y: [-1.6,1.6], z: [-1.6,1.6] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.8, pitch: 0.42, distance: 5.0 },
-      meshes: [boxMesh("slab-expanded", [-0.25,-1.4,-1.4], [1,1.4,1.4], "attempted enlargement", "removed", 0.15)],
-      markers: [marker3D("blocked", [0,0,0], "integer point becomes interior", "optimum", 0.11)],
-      segments: [segment3D("push", [0,0,0], [-0.25,0,0], "push facet", C.rose)],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "Maximality is blocked by lattice points", secondary: "A strict expansion destroys the lattice-free property." },
-    }),
+      "Just as in 2D, the narrow slab can expand in the x₁ direction until it reaches the consecutive integer hyperplanes x₁=0 and x₁=1. Both the smaller and larger slabs are lattice-free, so the smaller one is not inclusion-wise maximal.",
+    formula: "S₀={0.2≤x₁≤0.8} ⊊ S={0≤x₁≤1}",
+    insight:
+      "The extra x₂,x₃ directions do not change the maximality mechanism; the only relevant obstruction is the next integer level of cᵀx.",
+    scene: slabScene3D(
+      [
+        boxMesh("outer", [0,-1.4,-1.4], [1,1.4,1.4], "maximal S", "ghost", 0.12),
+        boxMesh("inner", [0.2,-1.15,-1.15], [0.8,1.15,1.15], "nonmaximal S₀", "removed", 0.25),
+      ],
+      boundary3D.map((p,i) => marker3D(`m-${i}`, p, undefined, "integer", 0.04)),
+      [
+        segment3D("left-expand", [0.2,0,0], [0,0,0], "expand to x₁=0", C.aqua),
+        segment3D("right-expand", [0.8,0,0], [1,0,0], "expand to x₁=1", C.aqua),
+      ],
+      "The inner slab can be enlarged without putting a lattice point into its interior.",
+    ),
+  },
+  {
+    id: "znfree-3d-split",
+    kicker: "End of Chapter 24 · Split example · 3D",
+    title: "The maximal slab is exactly a split between consecutive integer hyperplanes",
+    description:
+      "Take c=e₁ and α=0. Then S={x:α≤cᵀx≤α+1}. Because c is integral, cᵀz is integral for every z∈ℤ³, so no lattice point has 0<cᵀz<1. Moving either boundary outward makes a boundary lattice point interior.",
+    formula: "S={x∈ℝ³:α≤cᵀx≤α+1},  c=e₁, α=0",
+    insight:
+      "This is the same final split picture as in 2D, now displayed as a slab with two infinite boundary planes.",
+    scene: slabScene3D(
+      [boxMesh("split", [0,-1.4,-1.4], [1,1.4,1.4], "split S", "solid", 0.16)],
+      boundary3D.map((p,i) => marker3D(`s-${i}`, p, undefined, "integer", 0.043)),
+      [
+        segment3D("normal", [0.5,0,0], [1.25,0,0], "c=e₁", C.violet),
+        segment3D("left-bound", [0,-1.2,0], [0,1.2,0], "cᵀx=α", C.orange),
+        segment3D("right-bound", [1,-1.2,0], [1,1.2,0], "cᵀx=α+1", C.orange),
+      ],
+      "The 3D example now follows the same definition → nonmaximal set → maximal split progression as the 2D example.",
+    ),
   },
 ];
 
 const examples: VisualizationExample[] = [
-  { id: "znfree-2d", title: "2D · strip and split", stages: stages2D },
-  { id: "znfree-3d", title: "3D · lattice-free slab", stages: stages3D },
+  { id: "znfree-2d", title: "2D · definition, maximality, split", stages: stages2D },
+  { id: "znfree-3d", title: "3D · definition, maximality, split", stages: stages3D },
 ];
 
 const visualization: VisualizationDefinition = {
@@ -146,9 +179,9 @@ const visualization: VisualizationDefinition = {
   chapter: "Lattice-free polyhedra",
   order: 4,
   description:
-    "Introduces the chapter's lattice-free notion, distinguishes boundary from interior lattice points, visualizes inclusion-wise maximality, and connects the definition to split sets at the end of Chapter 24.",
+    "Introduces the chapter's lattice-free notion, distinguishes boundary from interior lattice points, visualizes inclusion-wise maximality, and connects the definition to split sets at the end of Chapter 24. The 2D and 3D examples now use the same three-stage structure.",
   difficulty: "Foundation",
-  duration: 8,
+  duration: 9,
   accent: C.lime,
   visualLabel: "Lattice-free geometry",
   insightLabel: "Definition consequence",
