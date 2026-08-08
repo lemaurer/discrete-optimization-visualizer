@@ -58,6 +58,7 @@ import visualization53 from "./standard-form-proximity/example-152-near-tightnes
 import visualization54 from "./standard-form-proximity/frobenius-example-153";
 import visualization55 from "./standard-form-proximity/definition-154-diagonal-frobenius";
 import visualization56 from "./standard-form-proximity/theorem-155-diagonal-frobenius-bound";
+import visualization57 from "./integral-generating-sets/parametric-feasible-set-generators";
 
 export const generatedVisualizations = [
   visualization0,
@@ -117,4 +118,5 @@ export const generatedVisualizations = [
   visualization54,
   visualization55,
   visualization56,
+  visualization57,
 ];
