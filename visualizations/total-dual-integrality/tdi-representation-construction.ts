@@ -3,9 +3,9 @@ import { buildAExamples } from "@/visualizations/helpers/tdi-representation-buil
 
 const visualization = {
   ...baseVisualization,
-  duration: 38,
+  duration: 40,
   description:
-    `${baseVisualization.description} The example selector also includes a row-by-row construction view that keeps P visible while A and b are built from the Hilbert-basis support inequalities.`,
+    `${baseVisualization.description} The example selector also includes a side-by-side construction view: the original polyhedron P={x:Cx≤d} stays fixed while A is revealed from the minimal-face generating sets H_i, together with the current partial polyhedron {x:A^(k)x≤b^(k)}.`,
   examples: [...(baseVisualization.examples ?? []), ...buildAExamples],
 };
 
