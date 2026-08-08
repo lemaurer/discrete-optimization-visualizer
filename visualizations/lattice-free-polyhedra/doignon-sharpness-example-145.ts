@@ -9,6 +9,7 @@ import {
   label2D,
   line2D,
   marker3D,
+  octahedronMesh,
   point2D,
   scene2D,
   scene3D,
@@ -120,72 +121,97 @@ const stages2D: VisualizationStage[] = [
   },
 ];
 
+const center3D: Point3D = [0.5, 0.5, 0.5];
+
+function example145Scene3D(
+  markers: ReturnType<typeof marker3D>[],
+  segments: ReturnType<typeof segment3D>[],
+  secondary: string,
+  showPolyhedron = true,
+) {
+  return scene3D({
+    bounds: { x: [-0.45, 1.45], y: [-0.45, 1.45], z: [-0.45, 1.45] },
+    axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
+    camera: { yaw: -0.8, pitch: 0.46, distance: 4.8 },
+    meshes: showPolyhedron ? [octahedronMesh("example145-P", center3D, 0.5, "P", "ghost", 0.2)] : [],
+    markers,
+    segments,
+    showGround: true,
+    showIntegerLattice: true,
+    integerAxes: ["x","y","z"],
+    caption: { primary: "Example 145 in dimension three", secondary },
+  });
+}
+
 const stages3D: VisualizationStage[] = [
   {
-    id: "sharp-145-3d-cube",
+    id: "sharp-145-3d-statement",
     kicker: "Chapter 24 · Example 145 · 3D",
-    title: "For n=3 the construction has exactly eight essential inequalities",
+    title: "The eight subset inequalities cut out a real octahedron with no integer point",
     description:
-      "Each subset I⊆{1,2,3} corresponds to one 0/1 vertex χᴵ of the cube and to one inequality in the system.",
-    formula: "2³=8 subsets I ↔ 8 inequalities ↔ 8 witnesses χᴵ",
-    insight: "The subset lattice and the binary cube are the same combinatorial object.",
-    scene: scene3D({
-      bounds: { x: [-0.35, 1.35], y: [-0.35, 1.35], z: [-0.35, 1.35] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.8, pitch: 0.45, distance: 4.7 },
-      markers: cubeVertices.map((p, i) => marker3D(`v-${i}`, p, `I=${subsetLabel(p)}`, "integer", 0.07)),
-      segments: cubeEdges.map(([a,b], i) => segment3D(`e-${i}`, cubeVertices[a], cubeVertices[b], "", C.muted, { width: 2, animate: false })),
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "Eight subset witnesses", secondary: "One binary cube vertex for every inequality." },
-    }),
+      "For n=3 the system has eight rows. Writing s_I=2χᴵ−1, the inequalities are s_Iᵀx≤|I|−1. Their common real feasible region is exactly ||x−(1/2,1/2,1/2)||₁≤1/2, the displayed octahedron.",
+    formula: "P={x:Σ_{i∈I}xᵢ−Σ_{i∉I}xᵢ≤|I|−1 ∀I} = {x:||x−½1||₁≤½}",
+    insight:
+      "This is the true 3D feasible polyhedron. The eight 0/1 cube vertices are outside P and will serve as the remove-one-row witnesses.",
+    scene: example145Scene3D(
+      cubeVertices.map((p, i) => marker3D(`v-${i}`, p, i === 7 ? "0/1 witnesses" : undefined, "integer", 0.055)),
+      cubeEdges.map(([a,b], i) => segment3D(`e-${i}`, cubeVertices[a], cubeVertices[b], "", C.muted, { width: 2, animate: false, dashed: true })),
+      "The octahedron is the real feasible set; the wireframe cube only organizes the eight integer witnesses.",
+    ),
   },
   {
-    id: "sharp-145-3d-no-integer",
-    kicker: "Verification · N₁/N₀ argument",
-    title: "Every hypothetical integer point chooses the inequality that defeats it",
+    id: "sharp-145-3d-partition",
+    kicker: "Verification step 1 · Partition coordinates",
+    title: "A hypothetical integer x again determines N₁ and N₀ itself",
     description:
-      "Given x∈ℤ³, define N₁={i:xᵢ≥1}. The inequality indexed by I=N₁ yields exactly the same impossible chain as in the notes.",
+      "Take the concrete candidate x=(1,0,1). Integrality gives N₁={1,3} and N₀={2}. The proof selects exactly the row I=N₁; no geometric guess is involved.",
+    formula: "x=(1,0,1) ⇒ N₁={1,3}, N₀={2}, choose I=N₁",
+    insight:
+      "For this row the normal is a_I=(1,−1,1) and b_I=|I|−1=1.",
+    scene: example145Scene3D(
+      [marker3D("candidate", [1,0,1], "x=(1,0,1) · N₁={1,3}", "optimum", 0.105)],
+      [segment3D("normal", center3D, [1.05,-0.05,1.05], "a_I=(1,−1,1)", C.orange)],
+      "The candidate itself determines the sign pattern of the contradicting inequality.",
+    ),
+  },
+  {
+    id: "sharp-145-3d-chain",
+    kicker: "Verification step 2 · Contradiction chain",
+    title: "The same inequality chain works without any 3D shortcut",
+    description:
+      "Coordinates in N₁ are at least one, coordinates in N₀ are at most zero, and feasibility of the I=N₁ row sits between those two facts. Therefore the same impossible bound |N₁|≤|N₁|−1 follows.",
     formula: "|N₁|≤Σ_{N₁}xᵢ≤|N₁|−1+Σ_{N₀}xᵢ≤|N₁|−1",
-    insight: "The proof is dimension-independent; only the number of possible subsets changes.",
-    scene: scene3D({
-      bounds: { x: [-0.35, 1.35], y: [-0.35, 1.35], z: [-0.35, 1.35] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.8, pitch: 0.45, distance: 4.7 },
-      markers: [marker3D("candidate", [1,0,1], "N₁={1,3}", "optimum", 0.1)],
-      segments: [],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "The candidate determines I=N₁", secondary: "That one inequality is enough to contradict feasibility." },
-    }),
+    insight:
+      "For x=(1,0,1), the selected row gives 2≤1+0≤1, already impossible. The proof is exactly the 2D proof, only with three coordinates.",
+    scene: example145Scene3D(
+      [
+        marker3D("bad", [1,0,1], "hypothetical integer x", "optimum", 0.1),
+        marker3D("center", center3D, "real feasible region stays around ½1", "fractional", 0.075),
+      ],
+      [segment3D("reject", [1,0,1], center3D, "selected row excludes x", C.rose)],
+      "The octahedron contains no integer point because every integer candidate defeats itself via I=N₁.",
+    ),
   },
   {
-    id: "sharp-145-3d-essential",
-    kicker: "Sharpness · Remove one row",
-    title: "Deleting row I exposes the corresponding cube vertex χᴵ",
+    id: "sharp-145-3d-minimality",
+    kicker: "Sharpness · Extra verification",
+    title: "Remove row I and the corresponding cube vertex χᴵ becomes feasible",
     description:
-      "For J≠I, the Hamming distance |I△J| is at least one, which is exactly the slack needed for χᴵ to satisfy all remaining inequalities.",
-    formula: "(|J|−1)−LHS_J(χᴵ)=|I△J|−1≥0",
-    insight: "Hence no universal bound below 2ⁿ can replace Doignon's 2ⁿ.",
-    scene: scene3D({
-      bounds: { x: [-0.35, 1.35], y: [-0.35, 1.35], z: [-0.35, 1.35] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.8, pitch: 0.45, distance: 4.7 },
-      markers: cubeVertices.map((p, i) => marker3D(`w-${i}`, p, i === 5 ? "χ^{\{1,3\}} feasible after deleting its row" : undefined, i === 5 ? "optimum" : "integer", i === 5 ? 0.11 : 0.045)),
-      segments: [],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "Every row has its own witness", secondary: "The eight-row construction is inclusion-minimal integer-infeasible." },
-    }),
+      "Choose I={1,3}. The point χᴵ=(1,0,1) violates its own row by one. For every other J the slack is |I△J|−1≥0, so all remaining seven inequalities are satisfied.",
+    formula: "(|J|−1)−LHS_J(χᴵ)=|I△J|−1≥0 for J≠I",
+    insight:
+      "Every one of the eight facets is essential. This is the literal three-dimensional sharpness mechanism behind the 2³ bound.",
+    scene: example145Scene3D(
+      cubeVertices.map((p, i) => marker3D(`w-${i}`, p, i === 5 ? "χ^{\{1,3\}} becomes feasible" : undefined, i === 5 ? "optimum" : "integer", i === 5 ? 0.11 : 0.04)),
+      [segment3D("removed-normal", center3D, [1.05,-0.05,1.05], "removed facet I={1,3}", C.rose, { dashed: true })],
+      "One deleted facet opens the octahedron exactly toward its associated cube vertex.",
+    ),
   },
 ];
 
 const examples: VisualizationExample[] = [
   { id: "example-145-2d", title: "2D · four inequalities", stages: stages2D },
-  { id: "example-145-3d", title: "3D · eight inequalities", stages: stages3D },
+  { id: "example-145-3d", title: "3D · exact octahedron and proof", stages: stages3D },
 ];
 
 const visualization: VisualizationDefinition = {
@@ -195,7 +221,7 @@ const visualization: VisualizationDefinition = {
   chapter: "Lattice-free polyhedra",
   order: 2,
   description:
-    "Visualizes the 2ⁿ-inequality construction from Example 145, the N₁/N₀ contradiction proving integer infeasibility, and the remove-one-row witnesses that make the Doignon bound sharp.",
+    "Visualizes the 2ⁿ-inequality construction from Example 145, the N₁/N₀ contradiction proving integer infeasibility, and the remove-one-row witnesses that make the Doignon bound sharp. The 3D option now shows the actual feasible octahedron rather than only a parity cube.",
   difficulty: "Intermediate",
   duration: 12,
   accent: C.orange,
