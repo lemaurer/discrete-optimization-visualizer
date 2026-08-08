@@ -24,28 +24,29 @@ import visualization19 from "./graphs/max-flow-min-cut-primal-dual";
 import visualization20 from "./graphs/mst-greedy-and-dual-flooding";
 import visualization21 from "./integral-generating-sets/integral-generating-sets-three-dimensional";
 import visualization22 from "./integral-generating-sets/integral-generating-sets";
-import visualization23 from "./lattice-theory/approximate-nearest-vector-anv";
-import visualization24 from "./lattice-theory/fixip-algorithm";
-import visualization25 from "./lattice-theory/gram-schmidt-lll-reduction";
-import visualization26 from "./lattice-theory/lattice-foundations";
-import visualization27 from "./lattice-theory/minkowski-convex-body-theorem";
-import visualization28 from "./lattice-theory/voronoi-cells";
-import visualization29 from "./lp-duality/dual-linear-program";
-import visualization30 from "./lp-duality/dual-polyhedron";
-import visualization31 from "./lp-duality/farkas-lemma";
-import visualization32 from "./lp-duality/strong-complementary-slackness";
-import visualization33 from "./polyhedra/ellipsoid-matrix-geometry";
-import visualization34 from "./polyhedra/ellipsoid-representation";
-import visualization35 from "./polyhedra/polyhedron-geometry.visualization";
-import visualization36 from "./polyhedral-ties/finite-t-cone-examples";
-import visualization37 from "./total-dual-integrality/tdi-divisible-coefficients";
-import visualization38 from "./total-dual-integrality/tdi-dual-optima";
-import visualization39 from "./total-dual-integrality/tdi-face-cones";
-import visualization40 from "./total-dual-integrality/tdi-implies-integral-polyhedron";
-import visualization41 from "./total-dual-integrality/tdi-representation-construction";
-import visualization42 from "./total-unimodularity/affine-tu-decomposition";
-import visualization43 from "./total-unimodularity/integer-decomposition-property";
-import visualization44 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization23 from "./lattice-free-polyhedra/doignon-theorem-144";
+import visualization24 from "./lattice-theory/approximate-nearest-vector-anv";
+import visualization25 from "./lattice-theory/fixip-algorithm";
+import visualization26 from "./lattice-theory/gram-schmidt-lll-reduction";
+import visualization27 from "./lattice-theory/lattice-foundations";
+import visualization28 from "./lattice-theory/minkowski-convex-body-theorem";
+import visualization29 from "./lattice-theory/voronoi-cells";
+import visualization30 from "./lp-duality/dual-linear-program";
+import visualization31 from "./lp-duality/dual-polyhedron";
+import visualization32 from "./lp-duality/farkas-lemma";
+import visualization33 from "./lp-duality/strong-complementary-slackness";
+import visualization34 from "./polyhedra/ellipsoid-matrix-geometry";
+import visualization35 from "./polyhedra/ellipsoid-representation";
+import visualization36 from "./polyhedra/polyhedron-geometry.visualization";
+import visualization37 from "./polyhedral-ties/finite-t-cone-examples";
+import visualization38 from "./total-dual-integrality/tdi-divisible-coefficients";
+import visualization39 from "./total-dual-integrality/tdi-dual-optima";
+import visualization40 from "./total-dual-integrality/tdi-face-cones";
+import visualization41 from "./total-dual-integrality/tdi-implies-integral-polyhedron";
+import visualization42 from "./total-dual-integrality/tdi-representation-construction";
+import visualization43 from "./total-unimodularity/affine-tu-decomposition";
+import visualization44 from "./total-unimodularity/integer-decomposition-property";
+import visualization45 from "./total-unimodularity/tu-unimodular-polyhedra";
 
 export const generatedVisualizations = [
   visualization0,
@@ -93,4 +94,5 @@ export const generatedVisualizations = [
   visualization42,
   visualization43,
   visualization44,
+  visualization45,
 ];
