@@ -52,6 +52,12 @@ import visualization47 from "./total-dual-integrality/tdi-representation-constru
 import visualization48 from "./total-unimodularity/affine-tu-decomposition";
 import visualization49 from "./total-unimodularity/integer-decomposition-property";
 import visualization50 from "./total-unimodularity/tu-unimodular-polyhedra";
+import visualization51 from "./standard-form-proximity/lemma-151-optimal-kernel-directions";
+import visualization52 from "./standard-form-proximity/theorem-150-steinitz-proximity";
+import visualization53 from "./standard-form-proximity/example-152-near-tightness";
+import visualization54 from "./standard-form-proximity/frobenius-example-153";
+import visualization55 from "./standard-form-proximity/definition-154-diagonal-frobenius";
+import visualization56 from "./standard-form-proximity/theorem-155-diagonal-frobenius-bound";
 
 export const generatedVisualizations = [
   visualization0,
@@ -105,4 +111,10 @@ export const generatedVisualizations = [
   visualization48,
   visualization49,
   visualization50,
+  visualization51,
+  visualization52,
+  visualization53,
+  visualization54,
+  visualization55,
+  visualization56,
 ];
