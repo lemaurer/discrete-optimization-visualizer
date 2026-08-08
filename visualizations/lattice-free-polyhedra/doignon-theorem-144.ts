@@ -1,365 +1,486 @@
-import type {
-  Marker3D,
-  Point2D,
-  Point3D,
-  Primitive,
-  Scene,
-  Scene3D,
-  Segment3D,
-} from "@/engine/types";
+import type { Point2D, Point3D, Primitive } from "@/engine/types";
 import type {
   VisualizationDefinition,
   VisualizationExample,
   VisualizationStage,
 } from "@/visualizations/types";
+import {
+  LATTICE_FREE_COLORS as C,
+  boxMesh,
+  label2D,
+  line2D,
+  marker3D,
+  octahedronMesh,
+  point2D,
+  polygon2D,
+  scene2D,
+  scene3D,
+  segment3D,
+  vector2D,
+} from "@/visualizations/helpers/lattice-free-scenes";
 
-const COLORS = {
-  muted: "#7d898b",
-  aqua: "#79c9c0",
-  orange: "#f28b45",
-  rose: "#e27c89",
-  violet: "#8f88dc",
-};
+const diamond: Point2D[] = [
+  [-0.25, 0.5],
+  [0.5, -0.25],
+  [1.25, 0.5],
+  [0.5, 1.25],
+];
 
-function point2D(at: Point2D, label?: string, style: "integer" | "fractional" | "optimum" | "lattice" = "integer"): Primitive {
-  return { kind: "point", at, label, style };
-}
+const rows2D = [
+  {
+    id: "1",
+    a: [-1, -1] as Point2D,
+    b: -0.25,
+    delta: 0,
+    witness: [0, 0] as Point2D,
+    parity: "EE",
+    line: [[-0.75, 1], [1, -0.75]] as [Point2D, Point2D],
+    label: "a₁=(-1,-1), b₁=-1/4",
+  },
+  {
+    id: "2",
+    a: [1, -1] as Point2D,
+    b: 0.75,
+    delta: 1,
+    witness: [1, 0] as Point2D,
+    parity: "OE",
+    line: [[-0.25, -1], [2, 1.25]] as [Point2D, Point2D],
+    label: "a₂=(1,-1), b₂=3/4",
+  },
+  {
+    id: "3",
+    a: [-1, 1] as Point2D,
+    b: 0.75,
+    delta: 1,
+    witness: [0, 1] as Point2D,
+    parity: "EO",
+    line: [[-1, -0.25], [1.25, 2]] as [Point2D, Point2D],
+    label: "a₃=(-1,1), b₃=3/4",
+  },
+  {
+    id: "4",
+    a: [1, 1] as Point2D,
+    b: 1.75,
+    delta: 2,
+    witness: [1, 1] as Point2D,
+    parity: "OO",
+    line: [[-0.25, 2], [2, -0.25]] as [Point2D, Point2D],
+    label: "a₄=(1,1), b₄=7/4",
+  },
+];
 
-function line2D(from: Point2D, to: Point2D, label?: string, color = COLORS.violet): Primitive {
-  return { kind: "line", from, to, label, style: "assignment", color, animate: true };
-}
+const center2D: Point2D = [0.5, 0.5];
 
-function label2D(at: Point2D, text: string, tone: "default" | "muted" | "accent" = "default"): Primitive {
-  return { kind: "label", at, text, tone };
-}
-
-function scene2D(primitives: Primitive[], secondary: string): Scene {
-  return {
-    viewport: { x: [-0.7, 3.3], y: [-0.7, 3.3] },
-    constraints: [],
-    primitives,
-    showGrid: true,
-    showAxes: true,
-    showLattice: true,
-    showConstraints: false,
-    showFeasibleRegion: false,
-    showVertices: false,
-    axisLabels: { x: "x₁", y: "x₂" },
-    caption: {
-      primary: "Doignon's theorem · proof objects in dimension 2",
+function theoremScene2D(extra: Primitive[], secondary: string, includeRows = true) {
+  return scene2D(
+    [
+      polygon2D(diamond, "P", "component"),
+      ...(includeRows
+        ? rows2D.map((r, i) =>
+            line2D(r.line[0], r.line[1], i < 2 ? r.label : undefined, i % 2 === 0 ? C.orange : C.aqua, "constraint"),
+          )
+        : []),
+      ...extra,
+    ],
+    {
+      primary: "Theorem 144 · one exact running polyhedron",
       secondary,
     },
-  };
+    { viewport: { x: [-1.05, 2.2], y: [-1.05, 2.2] } },
+  );
 }
-
-function scene3D(configuration: Scene3D): Scene {
-  return {
-    viewport: { x: [0, 1], y: [0, 1] },
-    constraints: [],
-    showGrid: false,
-    showAxes: false,
-    showLattice: false,
-    showVertices: true,
-    scene3D: configuration,
-  };
-}
-
-const witnesses2D: Array<{ p: Point2D; parity: string }> = [
-  { p: [0, 0], parity: "EE" },
-  { p: [1, 0], parity: "OE" },
-  { p: [0, 1], parity: "EO" },
-  { p: [1, 1], parity: "OO" },
-  { p: [2, 2], parity: "EE" },
-];
-
-const hull2D: Primitive = {
-  kind: "polygon",
-  points: [[0, 0], [1, 0], [2, 2], [0, 1]],
-  label: "conv(X)",
-  style: "component",
-};
-
-const base2D = [
-  hull2D,
-  ...witnesses2D.map(({ p }, i) => point2D(p, `y${i + 1}`, i === 0 || i === 4 ? "optimum" : "integer")),
-];
 
 const stages2D: VisualizationStage[] = [
   {
-    id: "doignon-2d-statement",
+    id: "doignon-2d-start",
     kicker: "Chapter 24 · Theorem 144 · 2D",
-    title: "Integer infeasibility has a certificate using at most 2ⁿ inequalities",
+    title: "Start with an actual integer-empty polyhedron, not schematic witness points",
     description:
-      "For n=2 the bound is 2²=4. If a polyhedron contains no integer point, some subsystem of at most four of its inequalities already contains no integer point.",
-    formula: "P∩ℤⁿ=∅ ⇒ ∃I, |I|≤2ⁿ, {x:A_Ix≤b_I}∩ℤⁿ=∅",
+      "The running example is the full-dimensional diamond cut out by four essential rows plus one redundant row x₁≤2. It contains no integer point. The fifth row is deliberately redundant so that the first proof operation—minimalizing the system—is visible on a genuine polyhedron.",
+    formula:
+      "A=[(-1,-1);(1,-1);(-1,1);(1,1)],  b=(-1/4,3/4,3/4,7/4),  plus a₅=(1,0), b₅=2",
     insight:
-      "The proof is an integer Helly argument. The number 2ⁿ comes from the 2ⁿ coordinate-wise parity classes of ℤⁿ.",
-    scene: scene2D([
-      ...base2D,
-      label2D([2.0, 0.35], "n=2 ⇒ 4 parity classes", "accent"),
-    ], "The five displayed points are schematic proof witnesses; the contradiction shows that a genuine minimal system cannot have five essential inequalities."),
+      "The row vector aᵢ is the normal of the boundary aᵢᵀx=bᵢ; increasing aᵢᵀx points toward the forbidden side of the inequality aᵢᵀx≤bᵢ.",
+    scene: theoremScene2D(
+      [
+        line2D([2, -1], [2, 2], "redundant row a₅=(1,0)", C.rose, "cut"),
+        label2D([-0.65, 1.78], "P∩ℤ²=∅", "accent"),
+        point2D([0, 0], undefined, "lattice"),
+        point2D([1, 0], undefined, "lattice"),
+        point2D([0, 1], undefined, "lattice"),
+        point2D([1, 1], undefined, "lattice"),
+      ],
+      "P is the shaded diamond. The nearest four lattice points all lie outside it.",
+    ),
   },
   {
-    id: "doignon-2d-minimal-counterexample",
-    kicker: "Proof step 1 · Minimalize the system",
-    title: "Assume more than 2ⁿ inequalities are all essential",
+    id: "doignon-2d-minimalize",
+    kicker: "Proof step 1 · Minimal integer-infeasible subsystem",
+    title: "Delete redundant rows until every remaining inequality is essential",
     description:
-      "Assume m>2ⁿ and discard redundant inequalities until removing any remaining inequality restores an integer point. This is the minimal-counterexample reduction used in the notes.",
-    formula: "∀j ∃xʲ∈ℤⁿ: aᵢᵀxʲ≤bᵢ for every i≠j",
+      "Removing row 5 changes nothing, so it is discarded. The remaining four-row system is inclusion-minimal integer-infeasible: deleting row i makes the displayed integer witness xⁱ feasible.",
+    formula:
+      "x¹=(0,0), x²=(1,0), x³=(0,1), x⁴=(1,1);  a_kᵀxⁱ≤b_k for k≠i, while aᵢᵀxⁱ>bᵢ",
     insight:
-      "Each inequality j receives its own integer witness xʲ that satisfies every other inequality and must violate inequality j.",
-    scene: scene2D([
-      ...base2D,
-      ...witnesses2D.map(({ p }, i) => label2D([p[0] + 0.08, p[1] + 0.18], `x${i + 1}`, "accent")),
-    ], "Hypothetical m=5>4 essential inequalities produce five distinct remove-one-constraint witnesses."),
+      "This is exactly the object used in the proof. If a minimal system had m>2²=4 rows, it would produce more than four such witnesses.",
+    scene: theoremScene2D(
+      rows2D.map((r, i) => point2D(r.witness, `x${i + 1} · remove row ${i + 1}`, "optimum")),
+      "Each corner of the unit square witnesses the necessity of one row.",
+    ),
   },
   {
-    id: "doignon-2d-finite-y",
-    kicker: "Proof step 2 · Build the finite integer set Y",
-    title: "Take all integer points in the convex hull of the witnesses",
+    id: "doignon-2d-row-normals",
+    kicker: "Proof step 2 · What the aᵢ really are",
+    title: "The four normals are explicit and their feasible sides are visible",
     description:
-      "Set X={x¹,…,xᵐ} and Y=conv(X)∩ℤⁿ. Because conv(X) is a bounded polytope, Y is finite. It contains every xʲ, so it contains more than 2ⁿ integer points.",
-    formula: "X={x¹,…,xᵐ},   Y=conv(X)∩ℤⁿ={y¹,…,yᵗ}",
+      "Each row is a linear functional aᵢᵀx≤bᵢ. The arrows show the actual row normals. For example a₂=(1,−1) measures x₁−x₂; its boundary is x₁−x₂=3/4 and the feasible diamond lies on the lower-value side.",
+    formula:
+      "a₁=(-1,-1), a₂=(1,-1), a₃=(-1,1), a₄=(1,1)",
     insight:
-      "This finite set is crucial: the proof will maximize a finite tuple of threshold values and then use parity inside Y.",
-    scene: scene2D([
-      hull2D,
-      ...[[0,0],[1,0],[0,1],[1,1],[2,2],[1,2],[2,1]].map((p, i) => point2D(p as Point2D, i < 5 ? `Y` : undefined, "lattice")),
-    ], "Y is finite because it is the lattice-point set of a bounded convex hull."),
+      "There is no generic 'projection direction' hidden here: Δᵢ below is simply the finite set of scalar values aᵢᵀy attained by y∈Y.",
+    scene: theoremScene2D(
+      rows2D.map((r, i) =>
+        vector2D(center2D, [center2D[0] + 0.42 * r.a[0], center2D[1] + 0.42 * r.a[1]], `a${i + 1}`, i % 2 === 0 ? C.orange : C.aqua),
+      ),
+      "Normals point toward increasing left-hand side; P lies behind every boundary.",
+    ),
   },
   {
-    id: "doignon-2d-delta-sets",
-    kicker: "Proof step 3 · Project Y onto every row normal",
-    title: "For every inequality collect all attained integer row values",
+    id: "doignon-2d-build-y",
+    kicker: "Proof step 3 · X and Y",
+    title: "Take the convex hull of the remove-one-row witnesses and keep its lattice points",
     description:
-      "For each row i define Δᵢ={aᵢᵀy:y∈Y}. Since aᵢ and y are integral, every value in Δᵢ is an integer; since Y is finite, Δᵢ is finite.",
-    formula: "Δᵢ={aᵢᵀy:y∈Y}⊂ℤ",
+      "Set X={x¹,…,xᵐ} and Y=conv(X)∩ℤⁿ. In the running example conv(X) is the unit square and its only lattice points are the four corners.",
+    formula: "X={x¹,…,xᵐ},   Y=conv(X)∩ℤⁿ",
     insight:
-      "The proof converts geometry into finitely many one-dimensional threshold choices δᵢ∈Δᵢ.",
-    scene: scene2D([
-      ...base2D,
-      line2D([0,0],[2.7,0.9], "aᵢ direction", COLORS.orange),
-      label2D([1.75, 1.2], "project Y → Δᵢ⊂ℤ", "accent"),
-    ], "The line is schematic: Δᵢ records the scalar products aᵢᵀy, not Euclidean projection coordinates."),
+      "Y is finite because conv(X) is bounded. Every original witness xⁱ belongs to Y.",
+    scene: scene2D(
+      [
+        polygon2D([[0,0],[1,0],[1,1],[0,1]], "conv(X)", "integer-hull"),
+        ...rows2D.map((r, i) => point2D(r.witness, `x${i + 1}`, "optimum")),
+        label2D([1.18, 1.45], "Y={0,1}²", "accent"),
+      ],
+      { primary: "Finite proof set Y", secondary: "For this exact example, Y consists of four points." },
+      { viewport: { x: [-0.7, 2], y: [-0.7, 2] } },
+    ),
   },
   {
-    id: "doignon-2d-thresholds",
-    kicker: "Proof step 4 · Choose forbidden thresholds",
-    title: "Choose δᵢ>bᵢ so that no point of Y lies strictly below every threshold",
+    id: "doignon-2d-deltas",
+    kicker: "Proof step 4 · Δᵢ and δᵢ",
+    title: "Evaluate every row normal on the finite set Y",
     description:
-      "The notes first show such thresholds exist, taking the smallest attained value above bᵢ. Then they consider all tuples satisfying (1) δᵢ>bᵢ and (2) no y∈Y has aᵢᵀy<δᵢ for every i.",
-    formula: "(1) δᵢ>bᵢ   and   (2) ¬∃y∈Y: aᵢᵀy<δᵢ ∀i",
+      "For each row define Δᵢ={aᵢᵀy:y∈Y} and let δᵢ be the smallest attained value strictly larger than bᵢ. All quantities can be computed explicitly in the running example.",
+    formula:
+      "Δ₁={−2,−1,0}, δ₁=0;  Δ₂=Δ₃={−1,0,1}, δ₂=δ₃=1;  Δ₄={0,1,2}, δ₄=2",
     insight:
-      "Condition (2) is the invariant that the final midpoint will contradict.",
-    scene: scene2D([
-      ...base2D,
-      label2D([1.75, 2.75], "δ=(δ₁,…,δₘ)", "accent"),
-      label2D([1.55, 2.42], "no y∈Y is strict for every row", "muted"),
-    ], "Threshold space is abstract; the geometric set Y remains fixed while the δᵢ values are varied."),
+      "Because aᵢ is integral and y is integral, each Δᵢ⊂ℤ. The strict gap bᵢ<δᵢ is what turns '<δᵢ' back into the original inequality on integer points.",
+    scene: theoremScene2D(
+      [
+        ...rows2D.map((r, i) => point2D(r.witness, `a${i + 1}ᵀx${i + 1}=δ${i + 1}=${r.delta}`, "optimum")),
+        label2D([-0.72, 1.82], "δ=(0,1,1,2)", "accent"),
+      ],
+      "Each row's first forbidden integer level is attained at its own remove-one-row witness.",
+    ),
   },
   {
-    id: "doignon-2d-maximal-thresholds",
-    kicker: "Proof step 5 · Maximize the threshold tuple",
-    title: "Pick a feasible threshold tuple with maximal total sum",
+    id: "doignon-2d-maximal-delta",
+    kicker: "Proof step 5 · Maximize Σδᵢ",
+    title: "Maximal thresholds force one yⁱ with its own row tight and all other rows strict",
     description:
-      "Among all tuples satisfying (1) and (2), maximize δ₁+⋯+δₘ. Maximality forces a witness yⁱ for every coordinate i: row i is tight at δᵢ, while every other row is strictly below its threshold.",
-    formula: "aᵢᵀyⁱ=δᵢ,   a_kᵀyⁱ<δ_k for k≠i",
+      "Among all threshold tuples satisfying δᵢ>bᵢ and forbidding a point that is strict for every row, the proof maximizes Σδᵢ. Then for each i there must be yⁱ∈Y with aᵢᵀyⁱ=δᵢ and a_kᵀyⁱ<δ_k for every k≠i.",
+    formula: "aᵢᵀyⁱ=δᵢ,   a_kᵀyⁱ<δ_k  (k≠i)",
     insight:
-      "If no such yⁱ existed for some i, δᵢ could be increased to the next value in Δᵢ without violating condition (2), contradicting maximality.",
-    scene: scene2D([
-      ...base2D,
-      ...witnesses2D.map(({ p }, i) => label2D([p[0] + 0.1, p[1] - 0.22], `y${i + 1}: own row tight`, "accent")),
-    ], "Important: the displayed witnesses encode the maximality property abstractly. For yⁱ, strictness is required for k≠i."),
+      "Otherwise δᵢ could be raised to the next value of Δᵢ while preserving the forbidden-threshold condition, contradicting maximality.",
+    scene: theoremScene2D(
+      rows2D.map((r, i) => point2D(r.witness, `y${i + 1}: row ${i + 1} tight`, "optimum")),
+      "The running example already exhibits exactly the yⁱ pattern required by the abstract proof.",
+    ),
   },
   {
-    id: "doignon-2d-parity",
-    kicker: "Proof step 6 · Pigeonhole on parity",
-    title: "More than 2ⁿ witnesses force two with identical parity",
+    id: "doignon-2d-bound-is-tight",
+    kicker: "Proof step 6 · Parity at the boundary m=4",
+    title: "With exactly four witnesses, every parity class can occur once",
     description:
-      "In ℤ² there are only four parity vectors: (E,E), (O,E), (E,O), and (O,O). With five witnesses, two must belong to the same class.",
-    formula: "m>2ⁿ ⇒ ∃k≠ℓ: yᵏ≡yˡ (mod 2)",
+      "The four yⁱ of the running example occupy the four componentwise parity classes of ℤ². Therefore no parity collision is forced when m=4, which is why the theorem cannot prove a smaller universal bound.",
+    formula: "EE, OE, EO, OO  — exactly 2² classes",
     insight:
-      "Here y¹=(0,0) and y⁵=(2,2) are both even-even. This is exactly where the constant 2ⁿ enters the proof.",
-    scene: scene2D([
-      hull2D,
-      ...witnesses2D.map(({ p, parity }, i) => point2D(p, `y${i + 1} · ${parity}`, i === 0 || i === 4 ? "optimum" : "integer")),
-      line2D([0,0],[2,2], "same parity pair", COLORS.rose),
-    ], "Four parity classes cannot accommodate five witnesses without a collision."),
+      "This concrete stage also explains why the next step must assume m>4. There is no genuine five-row minimal counterexample to draw—that is precisely what the theorem proves cannot exist.",
+    scene: scene2D(
+      [
+        polygon2D([[0,0],[1,0],[1,1],[0,1]], "Y", "integer-hull"),
+        ...rows2D.map((r, i) => point2D(r.witness, `y${i + 1} · ${r.parity}`, "optimum")),
+      ],
+      { primary: "No collision at the sharp bound", secondary: "Four witnesses can occupy four different parity classes." },
+      { viewport: { x: [-0.6, 1.7], y: [-0.6, 1.7] } },
+    ),
   },
   {
-    id: "doignon-2d-midpoint",
-    kicker: "Proof step 7 · Take the midpoint",
-    title: "Equal parity makes the midpoint integral, and convexity keeps it in Y",
+    id: "doignon-2d-hypothetical-collision",
+    kicker: "Proof step 7 · Contradiction branch m>4",
+    title: "A hypothetical fifth yⁱ must repeat one of the four parity classes",
     description:
-      "For same-parity witnesses yᵏ,yˡ, every coordinate of their sum is even. Hence y=(yᵏ+yˡ)/2 is integral. Since both endpoints lie in conv(X), convexity puts y in conv(X), hence y∈Y.",
-    formula: "y=½(yᵏ+yˡ)∈ℤⁿ∩conv(X)=Y",
+      "From this point the proof is necessarily abstract: assume a minimal counterexample with m>4 existed. Its maximal-threshold witnesses y¹,…,yᵐ would contain two points yᵏ,yˡ with the same coordinate parities. The schematic fifth point below represents that impossible branch, not an extra row of the running diamond.",
+    formula: "m>2² ⇒ ∃k≠ℓ: yᵏ≡yˡ (mod 2)",
     insight:
-      "In the displayed 2D collision, ½((0,0)+(2,2))=(1,1).",
-    scene: scene2D([
-      hull2D,
-      point2D([0,0], "yᵏ=(0,0)", "optimum"),
-      point2D([2,2], "yˡ=(2,2)", "optimum"),
-      line2D([0,0],[2,2], "average", COLORS.rose),
-      point2D([1,1], "y=(1,1)∈Y∩ℤ²", "fractional"),
-    ], "Parity gives integrality; convexity gives membership in Y."),
+      "Equal parity means yᵏ+yˡ is even componentwise, so their midpoint is another lattice point.",
+    scene: scene2D(
+      [
+        polygon2D([[0,0],[1,0],[2,2],[0,1]], "abstract conv(X)", "component"),
+        point2D([0,0], "yᵏ · EE", "optimum"),
+        point2D([1,0], "OE", "integer"),
+        point2D([0,1], "EO", "integer"),
+        point2D([1,1], "OO", "integer"),
+        point2D([2,2], "yˡ · EE (hypothetical fifth)", "optimum"),
+        line2D([0,0],[2,2], "same parity", C.rose, "assignment"),
+      ],
+      { primary: "Abstract parity collision under m>4", secondary: "This scene is the contradiction assumption, deliberately separated from the concrete diamond." },
+      { viewport: { x: [-0.6, 2.6], y: [-0.6, 2.6] } },
+    ),
   },
   {
-    id: "doignon-2d-contradiction",
-    kicker: "Proof step 8 · Contradict condition (2)",
-    title: "The midpoint is strictly below every threshold",
+    id: "doignon-2d-midpoint-contradiction",
+    kicker: "Proof step 8 · Integral midpoint and contradiction",
+    title: "The midpoint lies in Y and becomes strict for every threshold",
     description:
-      "For row k, yᵏ is at δ_k but yˡ is strictly below δ_k, so their average is strictly below δ_k. The same holds for row ℓ. For every other row both endpoints are strict, so the average is strict as well.",
-    formula: "aᵢᵀy<δᵢ for every i",
+      "Set y=(yᵏ+yˡ)/2. Equal parity makes y integral, and convexity puts y in conv(X), hence y∈Y. For row k, yᵏ is tight while yˡ is strict; for row ℓ the roles reverse; every other row is strict at both endpoints. Averaging therefore makes every row strict.",
+    formula: "y=½(yᵏ+yˡ)∈Y,   aᵢᵀy<δᵢ for every i",
     insight:
-      "Thus y∈Y satisfies exactly what condition (2) forbids. The assumption m>2ⁿ is impossible, proving Theorem 144.",
-    scene: scene2D([
-      hull2D,
-      point2D([1,1], "forbidden y∈Y", "optimum"),
-      label2D([1.45, 1.35], "aᵢᵀy<δᵢ ∀i", "accent"),
-      label2D([1.45, 0.95], "contradiction to (2)", "accent"),
-    ], "Conclusion: a minimal integer-infeasible subsystem has at most 2²=4 inequalities in dimension two."),
+      "This contradicts the defining threshold condition. Hence an inclusion-minimal integer-infeasible subsystem has at most 2ⁿ rows.",
+    scene: scene2D(
+      [
+        polygon2D([[0,0],[1,0],[2,2],[0,1]], "abstract conv(X)", "component"),
+        point2D([0,0], "yᵏ", "optimum"),
+        point2D([2,2], "yˡ", "optimum"),
+        line2D([0,0],[2,2], "average", C.rose, "assignment"),
+        point2D([1,1], "y=(1,1) ∈ Y∩ℤ²", "fractional"),
+        label2D([1.25,0.65], "aᵢᵀy<δᵢ ∀i", "accent"),
+      ],
+      { primary: "Final contradiction", secondary: "Parity gives integrality; convexity gives membership; threshold strictness gives the contradiction." },
+      { viewport: { x: [-0.6, 2.6], y: [-0.6, 2.6] } },
+    ),
   },
 ];
 
-const cubePoints: Array<{ p: Point3D; parity: string }> = [
-  { p: [0,0,0], parity: "EEE" },
-  { p: [1,0,0], parity: "OEE" },
-  { p: [0,1,0], parity: "EOE" },
-  { p: [0,0,1], parity: "EEO" },
-  { p: [1,1,0], parity: "OOE" },
-  { p: [1,0,1], parity: "OEO" },
-  { p: [0,1,1], parity: "EOO" },
-  { p: [1,1,1], parity: "OOO" },
-  { p: [2,2,2], parity: "EEE" },
-];
+const center3D: Point3D = [0.5, 0.5, 0.5];
+const radius3D = 1.25;
+const cubeWitnesses3D: Array<{
+  p: Point3D;
+  a: Point3D;
+  subset: string;
+  size: number;
+  parity: string;
+}> = [];
 
-function marker3D(id: string, at: Point3D, label?: string, style: "integer" | "fractional" | "optimum" = "integer", radius = 0.075): Marker3D {
-  return { id, at, label, style, radius };
+for (let x = 0; x <= 1; x += 1) {
+  for (let y = 0; y <= 1; y += 1) {
+    for (let z = 0; z <= 1; z += 1) {
+      const p: Point3D = [x, y, z];
+      const a: Point3D = [2 * x - 1, 2 * y - 1, 2 * z - 1];
+      const subset = [x ? "1" : "", y ? "2" : "", z ? "3" : ""].filter(Boolean).join(",") || "∅";
+      const parity = `${x ? "O" : "E"}${y ? "O" : "E"}${z ? "O" : "E"}`;
+      cubeWitnesses3D.push({ p, a, subset, size: x + y + z, parity });
+    }
+  }
 }
 
-function segment3D(id: string, from: Point3D, to: Point3D, label: string, color = COLORS.violet): Segment3D {
-  return { id, from, to, label, color, width: 4, animate: true };
+function normalEndpoint(a: Point3D): Point3D {
+  return [center3D[0] + 0.46 * a[0], center3D[1] + 0.46 * a[1], center3D[2] + 0.46 * a[2]];
 }
 
-function proofScene3D(markers: Marker3D[], segments: Segment3D[], secondary: string): Scene {
+function theoremScene3D(
+  extraMarkers: ReturnType<typeof marker3D>[],
+  extraSegments: ReturnType<typeof segment3D>[],
+  secondary: string,
+  meshes = [octahedronMesh("P", center3D, radius3D, "P", "ghost", 0.2)],
+) {
   return scene3D({
-    bounds: { x: [-0.35, 2.45], y: [-0.35, 2.45], z: [-0.35, 2.45] },
+    bounds: { x: [-1.0, 2.25], y: [-1.0, 2.25], z: [-1.0, 2.25] },
     axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-    camera: { yaw: -0.8, pitch: 0.48, distance: 5.5 },
-    markers,
-    segments,
+    camera: { yaw: -0.78, pitch: 0.48, distance: 5.8 },
+    meshes,
+    markers: extraMarkers,
+    segments: extraSegments,
     showGround: true,
     showIntegerLattice: true,
     integerAxes: ["x", "y", "z"],
-    caption: {
-      primary: "Doignon's theorem · parity mechanism in dimension 3",
-      secondary,
-    },
+    caption: { primary: "Theorem 144 · exact 3D analogue", secondary },
   });
 }
 
-const all3DMarkers = cubePoints.map(({ p }, i) => marker3D(`w-${i}`, p, `y${i + 1}`, i === 0 || i === 8 ? "optimum" : "integer"));
-
 const stages3D: VisualizationStage[] = [
   {
-    id: "doignon-3d-statement",
+    id: "doignon-3d-start",
     kicker: "Chapter 24 · Theorem 144 · 3D",
-    title: "In dimension three, at most eight inequalities are needed",
+    title: "The 3D running polyhedron is an actual integer-empty octahedron",
     description:
-      "The theorem gives the bound 2³=8. The nine displayed witnesses represent the hypothetical situation m>8 that the proof rules out.",
-    formula: "P∩ℤ³=∅ ⇒ some subsystem of at most 2³=8 inequalities is already integer-infeasible",
+      "Use one row for every sign vector a_I∈{−1,+1}³, with a_I=2χᴵ−1 and b_I=|I|−1/4. Their intersection is the L1-ball ||x−(1/2,1/2,1/2)||₁≤5/4. It is full-dimensional and contains no lattice point. Add x₁≤2 as one visible redundant ninth row before minimalization.",
+    formula: "a_I=2χᴵ−1,  b_I=|I|−1/4,  I⊆{1,2,3}",
     insight:
-      "The proof is dimension-independent; the 3D picture makes the eight parity classes literally visible as the 2×2×2 parity cube.",
-    scene: proofScene3D(all3DMarkers, [], "Nine schematic witnesses are shown only to visualize the contradiction argument."),
+      "The nearest lattice points are the eight cube vertices; each is at L1-distance 3/2 from the center, strictly outside the radius 5/4 octahedron.",
+    scene: theoremScene3D(
+      cubeWitnesses3D.map((w, i) => marker3D(`start-${i}`, w.p, i === 7 ? "nearest lattice points" : undefined, "integer", 0.05)),
+      [segment3D("redundant", [2,-0.6,-0.6], [2,1.6,1.6], "redundant x₁≤2", C.rose, { dashed: true })],
+      "The shaded octahedron is P; cube-corner lattice points surround it but none lie inside.",
+    ),
   },
   {
-    id: "doignon-3d-minimal",
-    kicker: "Proof steps 1–2 · Essential constraints and finite Y",
-    title: "Minimality gives one integer witness per inequality, then Y makes the set finite",
+    id: "doignon-3d-minimalize",
+    kicker: "Proof step 1 · Minimalize",
+    title: "After removing the redundant row, all eight sign inequalities are essential",
     description:
-      "After minimalizing the infeasible system, removing inequality j gives xʲ∈ℤ³ satisfying every other row. Set X={xʲ} and Y=conv(X)∩ℤ³; Y is finite and contains all witnesses.",
-    formula: "∀j ∃xʲ∈ℤ³: aᵢᵀxʲ≤bᵢ (i≠j),   Y=conv(X)∩ℤ³",
+      "Deleting the row indexed by I makes χᴵ feasible. Thus the eight cube vertices are exact remove-one-row witnesses xᴵ, just as the four unit-square corners were in 2D.",
+    formula: "a_Jᵀχᴵ≤b_J for J≠I,   but a_Iᵀχᴵ=|I|>|I|−1/4=b_I",
     insight:
-      "The proof needs finiteness only to make the later threshold maximization well defined.",
-    scene: proofScene3D(all3DMarkers, [], "Think of the markers as members of the finite set Y."),
-  },
-  {
-    id: "doignon-3d-thresholds",
-    kicker: "Proof steps 3–5 · Δᵢ and maximal δ",
-    title: "Replace geometry by finitely many integer threshold values",
-    description:
-      "For each row i form Δᵢ={aᵢᵀy:y∈Y}. Choose δᵢ∈Δᵢ with δᵢ>bᵢ so that no y∈Y is strict for every row, and maximize δ₁+⋯+δₘ. Maximality gives a witness yⁱ with equality in row i and strictness in every other row.",
-    formula: "aᵢᵀyⁱ=δᵢ,   a_kᵀyⁱ<δ_k for k≠i",
-    insight:
-      "These threshold witnesses are the objects whose parity is compared in the final combinatorial step.",
-    scene: proofScene3D(
-      cubePoints.map(({ p }, i) => marker3D(`delta-${i}`, p, `y${i + 1}: row ${i + 1} tight`, i === 0 || i === 8 ? "optimum" : "integer")),
+      "This is a genuine minimal integer-infeasible system at the Doignon bound 2³=8.",
+    scene: theoremScene3D(
+      cubeWitnesses3D.map((w, i) => marker3D(`w-${i}`, w.p, `x^${w.subset}`, "optimum", 0.065)),
       [],
-      "The δ-values live in row-value space; the 3D marker positions only represent the associated yⁱ∈Y.",
+      "Every one of the eight facets has its own cube-vertex witness.",
     ),
   },
   {
-    id: "doignon-3d-parity-cube",
-    kicker: "Proof step 6 · 2³ parity classes",
-    title: "The eight cube corners represent all parity classes of ℤ³",
+    id: "doignon-3d-normals",
+    kicker: "Proof step 2 · Actual row normals",
+    title: "Every facet normal is one explicit sign vector a_I",
     description:
-      "Parity is the vector of coordinates modulo two. There are exactly 2³=8 possibilities. With nine yⁱ, two share a parity vector.",
-    formula: "m>2³ ⇒ ∃k≠ℓ: yᵏ≡yˡ (mod 2)",
+      "The eight rows are not arbitrary arrows: a_I has +1 exactly on coordinates in I and −1 on the complement. The corresponding boundary is a_Iᵀx=|I|−1/4, and the feasible octahedron lies on the ≤ side.",
+    formula: "I={1,3}: a_I=(1,−1,1), b_I=7/4;   I=∅: a_∅=(−1,−1,−1), b_∅=−1/4",
     insight:
-      "The origin and (2,2,2) both have parity (E,E,E), so they form the highlighted collision pair.",
-    scene: proofScene3D(
-      cubePoints.map(({ p, parity }, i) => marker3D(`parity-${i}`, p, parity, i === 0 || i === 8 ? "optimum" : "integer")),
-      [segment3D("collision", [0,0,0], [2,2,2], "same parity EEE", COLORS.rose)],
-      "Eight classes, nine witnesses: pigeonhole forces a repeated parity class.",
+      "The sign pattern of a_I points directly toward the cube vertex χᴵ that becomes feasible when that facet is removed.",
+    scene: theoremScene3D(
+      [],
+      cubeWitnesses3D.map((w, i) =>
+        segment3D(`n-${i}`, center3D, normalEndpoint(w.a), i === 0 || i === 5 ? `a_${w.subset}` : "", i % 2 === 0 ? C.orange : C.aqua, { width: 3 }),
+      ),
+      "Eight facet normals radiate from the center toward their corresponding remove-one-row witnesses.",
     ),
+  },
+  {
+    id: "doignon-3d-y",
+    kicker: "Proof step 3 · X and Y",
+    title: "conv(X) is the unit cube and Y consists of its eight lattice vertices",
+    description:
+      "The witness set X is exactly {0,1}³. Therefore conv(X)=[0,1]³ and Y=conv(X)∩ℤ³={0,1}³.",
+    formula: "X={χᴵ:I⊆{1,2,3}},   Y=[0,1]³∩ℤ³={0,1}³",
+    insight:
+      "This is the 3D counterpart of the unit square in the 2D proof walkthrough.",
+    scene: theoremScene3D(
+      cubeWitnesses3D.map((w, i) => marker3D(`y-${i}`, w.p, `x^${w.subset}`, "optimum", 0.06)),
+      [],
+      "Y is shown as the eight integer corners of the translucent unit cube.",
+      [boxMesh("convX", [0,0,0], [1,1,1], "conv(X)", "integer-hull", 0.12)],
+    ),
+  },
+  {
+    id: "doignon-3d-delta",
+    kicker: "Proof step 4 · Δ_I and δ_I",
+    title: "The first attained integer level above b_I is δ_I=|I|",
+    description:
+      "For a_I=2χᴵ−1, the maximum of a_Iᵀy over y∈{0,1}³ is attained uniquely at y=χᴵ and equals |I|. Since b_I=|I|−1/4, the smallest value in Δ_I above b_I is exactly δ_I=|I|.",
+    formula: "Δ_I={a_Iᵀy:y∈Y},   δ_I=min{w∈Δ_I:w>b_I}=|I|",
+    insight:
+      "Thus every cube vertex already satisfies the maximal-threshold witness pattern: its own row is tight at δ_I and every other row is strict.",
+    scene: theoremScene3D(
+      cubeWitnesses3D.map((w, i) => marker3D(`d-${i}`, w.p, i === 5 ? `y^${w.subset}: δ=${w.size}` : undefined, i === 5 ? "optimum" : "integer", i === 5 ? 0.1 : 0.045)),
+      [segment3D("selected-normal", center3D, normalEndpoint(cubeWitnesses3D[5].a), "selected a_I", C.orange)],
+      "Selected example: I={1,3}, y^I=(1,0,1), a_Iᵀy^I=2=δ_I.",
+    ),
+  },
+  {
+    id: "doignon-3d-maximal",
+    kicker: "Proof step 5 · Maximal Σδ_I",
+    title: "The same maximality argument now has eight concrete y^I witnesses",
+    description:
+      "In the abstract proof the threshold tuple is chosen to maximize its total sum. The running octahedron realizes the resulting condition exactly: for each I, y^I=χᴵ is tight only for its own threshold and strict for all others.",
+    formula: "a_Iᵀy^I=δ_I,   a_Jᵀy^I<δ_J for J≠I",
+    insight:
+      "The 3D example is therefore not merely a parity cube; it models every object used before the final pigeonhole step.",
+    scene: theoremScene3D(
+      cubeWitnesses3D.map((w, i) => marker3D(`m-${i}`, w.p, `y^${w.subset}`, "optimum", 0.06)),
+      [],
+      "Eight exact threshold witnesses, one per row.",
+      [boxMesh("Ybox", [0,0,0], [1,1,1], "Y", "ghost", 0.08)],
+    ),
+  },
+  {
+    id: "doignon-3d-parity-bound",
+    kicker: "Proof step 6 · Parity at m=8",
+    title: "At the sharp bound, the eight witnesses occupy all eight parity classes once",
+    description:
+      "The parity vector of a cube vertex is the vertex itself modulo two. Hence the eight y^I realize EEE,OEE,EOE,EEO,OOE,OEO,EOO,OOO exactly once. No collision is forced at m=8.",
+    formula: "2³=8 parity classes",
+    insight:
+      "This is the exact 3D analogue of the four-class unit-square picture in 2D.",
+    scene: theoremScene3D(
+      cubeWitnesses3D.map((w, i) => marker3D(`p-${i}`, w.p, w.parity, "optimum", 0.065)),
+      [],
+      "All parity classes are used once; the theorem only contradicts m>8.",
+      [boxMesh("parity-cube", [0,0,0], [1,1,1], "parity cube", "ghost", 0.08)],
+    ),
+  },
+  {
+    id: "doignon-3d-collision",
+    kicker: "Proof step 7 · Hypothetical ninth witness",
+    title: "If m>8, a ninth maximal-threshold witness must repeat a parity class",
+    description:
+      "This is again the abstract contradiction branch, not an extra facet of the octahedron. Represent a hypothetical ninth witness by (2,2,2), which repeats parity EEE with (0,0,0). Equal parity makes their midpoint integral.",
+    formula: "m>8 ⇒ yᵏ≡yˡ (mod 2),   y=½(yᵏ+yˡ)∈ℤ³",
+    insight:
+      "Separating this schematic branch from the concrete octahedron avoids the false impression that a genuine nine-row minimal counterexample exists.",
+    scene: scene3D({
+      bounds: { x: [-0.4,2.4], y: [-0.4,2.4], z: [-0.4,2.4] },
+      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
+      camera: { yaw: -0.8, pitch: 0.48, distance: 5.6 },
+      meshes: [boxMesh("abstract-hull", [0,0,0], [2,2,2], "abstract conv(X)", "ghost", 0.06)],
+      markers: [
+        ...cubeWitnesses3D.map((w, i) => marker3D(`a-${i}`, w.p, i === 0 ? "yᵏ · EEE" : undefined, i === 0 ? "optimum" : "integer", i === 0 ? 0.09 : 0.04)),
+        marker3D("ninth", [2,2,2], "yˡ · EEE (hypothetical ninth)", "optimum", 0.1),
+      ],
+      segments: [segment3D("collision", [0,0,0], [2,2,2], "same parity", C.rose)],
+      showGround: true,
+      showIntegerLattice: true,
+      integerAxes: ["x","y","z"],
+      caption: { primary: "Abstract m>8 parity collision", secondary: "The ninth point represents the contradiction assumption, not the running octahedron." },
+    }),
   },
   {
     id: "doignon-3d-midpoint",
-    kicker: "Proof step 7 · Integral midpoint",
-    title: "Same parity makes the midpoint another lattice point in Y",
+    kicker: "Proof step 8 · Final contradiction",
+    title: "The integral midpoint is strict for every threshold",
     description:
-      "The coordinate sums are even, hence the midpoint is integral. Convexity of conv(X) then puts it back in Y.",
-    formula: "½((0,0,0)+(2,2,2))=(1,1,1)∈Y∩ℤ³",
-    insight:
-      "This is the entire reason parity is used rather than a generic pigeonhole coloring.",
-    scene: proofScene3D(
-      [
+      "For the colliding pair, y=(yᵏ+yˡ)/2 lies in Y by integrality and convexity. Row k averages one tight and one strict endpoint; row ℓ does the same; every other row averages two strict endpoints. Hence a_iᵀy<δ_i for all rows, contradicting condition (2).",
+    formula: "y∈Y∩ℤ³ and a_iᵀy<δ_i for all i  ⇒ contradiction",
+    insight: "Therefore every minimal integer-infeasible subsystem in dimension three has at most eight rows.",
+    scene: scene3D({
+      bounds: { x: [-0.4,2.4], y: [-0.4,2.4], z: [-0.4,2.4] },
+      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
+      camera: { yaw: -0.8, pitch: 0.48, distance: 5.6 },
+      meshes: [boxMesh("abstract-hull-final", [0,0,0], [2,2,2], "abstract conv(X)", "ghost", 0.05)],
+      markers: [
         marker3D("left", [0,0,0], "yᵏ", "optimum", 0.09),
         marker3D("right", [2,2,2], "yˡ", "optimum", 0.09),
-        marker3D("mid", [1,1,1], "y=(yᵏ+yˡ)/2", "fractional", 0.11),
+        marker3D("mid", [1,1,1], "y=(1,1,1)", "fractional", 0.12),
       ],
-      [segment3D("average", [0,0,0], [2,2,2], "midpoint", COLORS.rose)],
-      "The midpoint belongs simultaneously to ℤ³ and conv(X).",
-    ),
-  },
-  {
-    id: "doignon-3d-contradiction",
-    kicker: "Proof step 8 · Final contradiction",
-    title: "Averaging the two threshold witnesses makes every row strict",
-    description:
-      "For rows k and ℓ one endpoint is tight and the other strict, so the midpoint is strict. For every other row both endpoints are strict. Thus aᵢᵀy<δᵢ for all i, contradicting condition (2).",
-    formula: "y∈Y and aᵢᵀy<δᵢ ∀i  ⇒ contradiction",
-    insight:
-      "Therefore no minimal integer-infeasible system can contain more than 2ⁿ inequalities.",
-    scene: proofScene3D(
-      [marker3D("forbidden", [1,1,1], "forbidden y∈Y", "optimum", 0.12)],
-      [],
-      "Conclusion for n=3: at most eight inequalities are needed.",
-    ),
+      segments: [segment3D("average", [0,0,0], [2,2,2], "midpoint", C.rose)],
+      showGround: true,
+      showIntegerLattice: true,
+      integerAxes: ["x","y","z"],
+      caption: { primary: "Final Doignon contradiction in 3D", secondary: "Parity + convexity + threshold strictness rule out a ninth essential row." },
+    }),
   },
 ];
 
 const examples: VisualizationExample[] = [
   {
     id: "doignon-proof-2d",
-    title: "2D proof walkthrough",
-    description: "A complete stage-by-stage visualization of the proof with five hypothetical witnesses and four parity classes.",
+    title: "2D · exact polyhedron + full proof",
+    description: "A full-dimensional four-facet integer-empty diamond, explicit aᵢ,bᵢ, witnesses, Δᵢ, δᵢ, and the abstract m>4 contradiction.",
     stages: stages2D,
   },
   {
     id: "doignon-proof-3d",
-    title: "3D parity walkthrough",
-    description: "The same proof in dimension three, where the eight parity classes appear as the corners of a parity cube.",
+    title: "3D · exact octahedron + full proof",
+    description: "The same proof objects in three dimensions: an eight-facet integer-empty octahedron, cube witnesses, exact normals and thresholds, then the m>8 parity contradiction.",
     stages: stages3D,
   },
 ];
@@ -371,31 +492,25 @@ const visualization: VisualizationDefinition = {
   chapter: "Lattice-free polyhedra",
   order: 1,
   description:
-    "Visualizes every proof step of Theorem 144 from the notes: minimal integer-infeasibility, remove-one-row witnesses, the finite set Y, the Δᵢ and maximal δᵢ construction, parity pigeonhole, the integral midpoint, and the final contradiction.",
+    "A rigorous visualization of Theorem 144. Both examples begin with an actual integer-empty polyhedron and explicit row normals. The proof then follows the notes through minimalization, X and Y, Δᵢ and δᵢ, maximal thresholds, parity, the integral midpoint, and the final contradiction.",
   difficulty: "Advanced",
-  duration: 18,
-  accent: COLORS.violet,
-  visualLabel: "Proof geometry",
+  duration: 24,
+  accent: C.violet,
+  visualLabel: "Exact proof geometry",
   insightLabel: "Why the step works",
-  controls: {
-    grid: true,
-    lattice: true,
-    vertices: false,
-    labels: true,
-  },
+  controls: { grid: true, lattice: true, vertices: false, labels: true },
   stages: stages2D,
   examples,
   proof: {
     title: "Theorem 144 proof skeleton",
     steps: [
-      "Assume a minimal integer-infeasible system with m>2ⁿ inequalities. Removing row j yields an integer witness xʲ satisfying all other rows.",
-      "Let X={x¹,…,xᵐ} and Y=conv(X)∩ℤⁿ. The set Y is finite and contains the witnesses.",
-      "For each row i form the finite integer value set Δᵢ={aᵢᵀy:y∈Y}.",
-      "Choose δᵢ∈Δᵢ with δᵢ>bᵢ and no y∈Y satisfying aᵢᵀy<δᵢ for every i; among all such tuples maximize Σᵢδᵢ.",
-      "Maximality gives, for every i, a witness yⁱ∈Y with aᵢᵀyⁱ=δᵢ and a_kᵀyⁱ<δ_k for every k≠i.",
-      "Since m>2ⁿ but ℤⁿ has only 2ⁿ parity classes, two witnesses yᵏ,yˡ have the same componentwise parity.",
-      "Their midpoint y=(yᵏ+yˡ)/2 is integral and belongs to Y by convexity.",
-      "For every row i the midpoint satisfies aᵢᵀy<δᵢ, contradicting the defining threshold condition. Hence m≤2ⁿ.",
+      "Start from P={x:Ax≤b} with P∩ℤⁿ=∅ and remove redundant rows until the system is inclusion-minimal integer-infeasible. Then removing row i yields an integer witness xⁱ satisfying every other row and violating row i.",
+      "Let X={x¹,…,xᵐ} and Y=conv(X)∩ℤⁿ. The set Y is finite and contains every xⁱ.",
+      "For each row i define Δᵢ={aᵢᵀy:y∈Y}. Choose δᵢ∈Δᵢ with δᵢ>bᵢ so that no y∈Y is strictly below every δᵢ, and maximize Σδᵢ.",
+      "Maximality implies that for every i there is yⁱ∈Y with aᵢᵀyⁱ=δᵢ and a_kᵀyⁱ<δ_k for all k≠i.",
+      "If m>2ⁿ, two y-witnesses have the same componentwise parity. Their midpoint is integral and remains in Y by convexity.",
+      "The midpoint is strict for every threshold: for the two selected rows one endpoint is tight and the other strict; for all other rows both endpoints are strict. This contradicts the threshold condition.",
+      "Hence every integer-infeasible system has an integer-infeasible subsystem with at most 2ⁿ inequalities.",
     ],
   },
 };
