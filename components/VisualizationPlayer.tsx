@@ -36,6 +36,9 @@ import { VisualizationCanvas3D } from "./VisualizationCanvas3D";
 const DETAIL_STAGE_DURATION = 7500;
 const SUMMARY_STAGE_DURATION = 1500;
 const DEFAULT_EXAMPLE_ID = "__default__";
+const MIN_ZOOM = 0.8;
+const MAX_ZOOM = 2.5;
+const ZOOM_STEP = 0.1;
 
 const THREE_DIMENSIONAL_EXAMPLES: Partial<
   Record<string, VisualizationExample>
@@ -524,10 +527,10 @@ export function VisualizationPlayer({
             <div className="canvas-tools">
               <button
                 aria-label="Zoom out"
-                disabled={zoom <= 0.8}
+                disabled={zoom <= MIN_ZOOM}
                 onClick={() =>
                   setZoom((value) =>
-                    Math.max(0.8, value - 0.1),
+                    Math.max(MIN_ZOOM, value - ZOOM_STEP),
                   )
                 }
                 type="button"
@@ -537,10 +540,10 @@ export function VisualizationPlayer({
               <span>{Math.round(zoom * 100)}%</span>
               <button
                 aria-label="Zoom in"
-                disabled={zoom >= 1.2}
+                disabled={zoom >= MAX_ZOOM}
                 onClick={() =>
                   setZoom((value) =>
-                    Math.min(1.2, value + 0.1),
+                    Math.min(MAX_ZOOM, value + ZOOM_STEP),
                   )
                 }
                 type="button"
