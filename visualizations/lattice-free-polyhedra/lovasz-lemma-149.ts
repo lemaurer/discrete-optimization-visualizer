@@ -7,6 +7,7 @@ import type {
 import {
   LATTICE_FREE_COLORS as C,
   boxMesh,
+  integerMarkersInBox,
   label2D,
   line2D,
   marker3D,
@@ -180,80 +181,184 @@ const stages2D: VisualizationStage[] = [
 ];
 
 const tetraVertices: [Point3D, Point3D, Point3D, Point3D] = [[0,0,0],[3,0,0],[0,3,0],[0,0,3]];
+const smallTetraVertices: [Point3D, Point3D, Point3D, Point3D] = [[0,0,0],[2.5,0,0],[0,2.5,0],[0,0,2.5]];
+const pushedTetraVertices: [Point3D, Point3D, Point3D, Point3D] = [[0,0,0],[3.5,0,0],[0,3.5,0],[0,0,3.5]];
 const facetBlockers: Point3D[] = [[0,1,1],[1,0,1],[1,1,0],[1,1,1]];
+const finiteBoxLattice3D = integerMarkersInBox("box", [-1,-1,-1], [3,3,3]);
+
+function lovaszScene3D(
+  meshes: NonNullable<ReturnType<typeof scene3D>["scene3D"]>["meshes"],
+  markers: ReturnType<typeof marker3D>[],
+  segments: ReturnType<typeof segment3D>[],
+  secondary: string,
+  planes: NonNullable<ReturnType<typeof scene3D>["scene3D"]>["planes"] = [],
+) {
+  return scene3D({
+    bounds: { x: [-1.0,4.0], y: [-1.0,4.0], z: [-1.0,4.0] },
+    axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
+    camera: { yaw: -0.78, pitch: 0.48, distance: 6.5 },
+    meshes,
+    planes,
+    markers,
+    segments,
+    showGround: true,
+    showIntegerLattice: true,
+    integerAxes: ["x","y","z"],
+    caption: { primary: "Lemma 149 (Lovász) · complete 3D proof", secondary },
+  });
+}
 
 const stages3D: VisualizationStage[] = [
   {
-    id: "lovasz-3d-tetra",
-    kicker: "Lemma 149 · 3D example",
-    title: "A maximal lattice-free tetrahedron has an integer blocker in every facet",
+    id: "lovasz-3d-statement",
+    kicker: "Chapter 24 · Lemma 149 · 3D",
+    title: "The maximal lattice-free tetrahedron shows both conclusions of the lemma",
     description:
-      "The tetrahedron conv{0,3e₁,3e₂,3e₃} has no integer point in its interior. The coordinate facets contain (0,1,1),(1,0,1),(1,1,0), and the slanted facet x₁+x₂+x₃=3 contains (1,1,1), all in relative interior.",
-    formula: "S=conv{0,3e₁,3e₂,3e₃}",
-    insight: "Moving any facet outward makes its blocker an interior integer point, which is the geometric signature of maximality.",
-    scene: scene3D({
-      bounds: { x: [-0.5,3.5], y: [-0.5,3.5], z: [-0.5,3.5] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.78, pitch: 0.48, distance: 6.1 },
-      meshes: [tetrahedronMesh("tetra", tetraVertices, "S", "ghost", 0.2)],
-      markers: facetBlockers.map((p,i) => marker3D(`f-${i}`, p, i === 3 ? "facet blockers" : undefined, "optimum", 0.075)),
-      segments: [],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "3D Lovász geometry", secondary: "Every facet has a relative-interior lattice point." },
-    }),
+      "Take S=conv{0,3e₁,3e₂,3e₃}. It is full-dimensional, bounded and lattice-free. Its four facets are blocked in relative interior by (0,1,1),(1,0,1),(1,1,0), and (1,1,1).",
+    formula: "S=conv{0,3e₁,3e₂,3e₃},   relint(F_j)∩ℤ³≠∅ for j=1,…,4",
+    insight:
+      "The 3D example now starts with the actual polyhedron and the actual facet blockers, exactly as the 2D triangle does.",
+    scene: lovaszScene3D(
+      [tetrahedronMesh("S", tetraVertices, "S", "ghost", 0.2)],
+      facetBlockers.map((p,i) => marker3D(`f-${i}`, p, i === 3 ? "one integer blocker per facet" : undefined, "optimum", 0.075)),
+      [],
+      "The coordinate facets are blocked by three boundary points; the slanted facet 1ᵀx=3 is blocked by (1,1,1).",
+    ),
   },
   {
-    id: "lovasz-3d-polyhedrality",
-    kicker: "Proof part 1 · 3D",
-    title: "Finitely many lattice separators inside a bounding box cut out S",
+    id: "lovasz-3d-bound-box",
+    kicker: "Proof part 1 · Step 1 · 3D",
+    title: "Boundedness places S inside a finite lattice box",
     description:
-      "Boundedness gives a finite lattice set in [−B,B]³. Separating each such lattice point from interior(S) yields finitely many half-spaces. Their intersection P is a lattice-free polytope containing S, so maximality forces P=S.",
-    formula: "S⊆P, P polytope and ℤ³-free ⇒ S=P",
-    insight: "This is the full polyhedrality proof in dimension three; nothing special about the tetrahedron is used.",
-    scene: scene3D({
-      bounds: { x: [-1,4], y: [-1,4], z: [-1,4] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.78, pitch: 0.48, distance: 6.5 },
-      meshes: [
-        boxMesh("bound", [-0.7,-0.7,-0.7], [3.7,3.7,3.7], "bounding box", "removed", 0.06),
-        tetrahedronMesh("tetra2", tetraVertices, "P=S", "solid", 0.16),
+      "Choose B so that S⊂[−B,B]³. Only finitely many lattice points lie in that box. The proof will separate each of those finitely many z from interior(S).",
+    formula: "S⊂[−B,B]³,   [−B,B]³∩ℤ³ finite",
+    insight:
+      "This is the same first proof step as in 2D; the wireframe box is not decoration but the source of finiteness.",
+    scene: lovaszScene3D(
+      [
+        boxMesh("B", [-0.7,-0.7,-0.7], [3.7,3.7,3.7], "finite bounding box", "removed", 0.055),
+        tetrahedronMesh("S-box", tetraVertices, "S", "ghost", 0.14),
       ],
-      markers: facetBlockers.map((p,i) => marker3D(`g-${i}`, p, undefined, "integer", 0.06)),
-      segments: [],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "Finite separator intersection", secondary: "Maximality collapses the outer polytope back onto S." },
-    }),
+      finiteBoxLattice3D,
+      [],
+      "Only finitely many displayed z∈ℤ³ need separating hyperplanes.",
+    ),
   },
   {
-    id: "lovasz-3d-facet-push",
-    kicker: "Proof part 2 · 3D",
-    title: "A facet without a blocker could be pushed until the first lattice point is reached",
+    id: "lovasz-3d-separate",
+    kicker: "Proof part 1 · Step 2 · 3D",
+    title: "Separate every lattice point z from the interior of S",
     description:
-      "The proof's contradiction construction moves one facet outward, collects the finitely many new interior lattice points, chooses the minimum β̄₁ along the facet normal, and moves back to that first lattice level.",
-    formula: "b₁ → b₁+1 → β̄₁=min a₁ᵀz",
-    insight: "The resulting larger set is still lattice-free, so a truly maximal S cannot have started with an unblocked facet.",
-    scene: scene3D({
-      bounds: { x: [-0.5,3.8], y: [-0.5,3.8], z: [-0.5,3.8] },
-      axisLabels: { x: "x₁", y: "x₂", z: "x₃" },
-      camera: { yaw: -0.78, pitch: 0.48, distance: 6.2 },
-      meshes: [tetrahedronMesh("tetra3", tetraVertices, "S", "ghost", 0.14)],
-      markers: [marker3D("block", [1,1,1], "first lattice level", "optimum", 0.1)],
-      segments: [segment3D("push", [1,1,1], [1.3,1.3,1.3], "push slanted facet outward", C.rose)],
-      showGround: true,
-      showIntegerLattice: true,
-      integerAxes: ["x","y","z"],
-      caption: { primary: "Facet-pushing contradiction", secondary: "A maximal facet must already be stopped by a relative-interior lattice point." },
-    }),
+      "Lattice-freeness says no z∈ℤ³ lies in interior(S). For each z in the finite box, choose a separating half-space α_zᵀx≤α_zᵀz containing S. The four displayed planes are representative supporting separators through the facet blockers.",
+    formula: "S⊆{x:α_zᵀx≤α_zᵀz} for every lattice z in the box",
+    insight:
+      "Boundary lattice points naturally use supporting facet planes; exterior points may use other separating planes. The proof takes finitely many of them all together.",
+    scene: lovaszScene3D(
+      [tetrahedronMesh("S-sep", tetraVertices, "S", "ghost", 0.12)],
+      facetBlockers.map((p,i) => marker3D(`z-${i}`, p, `z${i + 1}`, "optimum", 0.07)),
+      [],
+      "Representative separators through the four facet blockers.",
+      [
+        { id: "x0", points: [[0,0,0],[0,3,0],[0,0,3]], label: "x₁=0", color: C.orange, opacity: 0.12 },
+        { id: "y0", points: [[0,0,0],[3,0,0],[0,0,3]], label: "x₂=0", color: C.aqua, opacity: 0.12 },
+        { id: "z0", points: [[0,0,0],[3,0,0],[0,3,0]], label: "x₃=0", color: C.violet, opacity: 0.12 },
+        { id: "sum3", points: [[3,0,0],[0,3,0],[0,0,3]], label: "x₁+x₂+x₃=3", color: C.rose, opacity: 0.16 },
+      ],
+    ),
+  },
+  {
+    id: "lovasz-3d-finite-p",
+    kicker: "Proof part 1 · Step 3 · 3D",
+    title: "Intersect the finitely many separators: the resulting lattice-free polytope P must equal S",
+    description:
+      "The bounding box and separator half-spaces define a finite polytope P containing S. By construction P is lattice-free. Since S was assumed maximal, S⊆P cannot be strict, hence P=S and S is itself polyhedral.",
+    formula: "S⊆P, P polytope and ℤ³-free, S maximal ⇒ P=S",
+    insight:
+      "This is the complete polyhedrality conclusion, not a 3D summary shortcut.",
+    scene: lovaszScene3D(
+      [tetrahedronMesh("P=S", tetraVertices, "P=S", "integer-hull", 0.18)],
+      facetBlockers.map((p,i) => marker3D(`ps-${i}`, p, i === 3 ? "P=S by maximality" : undefined, "optimum", 0.065)),
+      [],
+      "First conclusion: the maximal convex set S is a polyhedron.",
+    ),
+  },
+  {
+    id: "lovasz-3d-missing-facet",
+    kicker: "Proof part 2 · Step 1 · 3D",
+    title: "Assume one facet has no lattice point in relative interior",
+    description:
+      "To visualize the contradiction hypothesis, shrink only the slanted facet from 1ᵀx=3 to 1ᵀx=5/2. The resulting tetrahedron is still lattice-free, but its slanted facet cannot contain an integer point because 1ᵀz is integral for z∈ℤ³.",
+    formula: "S₀={x≥0:1ᵀx≤5/2},   relint(F₁)∩ℤ³=∅",
+    insight:
+      "This smaller tetrahedron is intentionally nonmaximal: it is the concrete 3D analogue of the smaller triangle used in the 2D contradiction picture.",
+    scene: lovaszScene3D(
+      [tetrahedronMesh("S0", smallTetraVertices, "hypothetical unblocked S", "ghost", 0.2)],
+      [],
+      [segment3D("normal-small", [0.83,0.83,0.83], [1.25,1.25,1.25], "a₁=(1,1,1)", C.rose)],
+      "The slanted facet 1ᵀx=2.5 has no lattice point at all, hence none in relative interior.",
+      [{ id: "old-facet", points: [[2.5,0,0],[0,2.5,0],[0,0,2.5]], label: "unblocked facet", color: C.rose, opacity: 0.18 }],
+    ),
+  },
+  {
+    id: "lovasz-3d-push-one",
+    kicker: "Proof part 2 · Step 2 · 3D",
+    title: "Push the unblocked facet outward by one unit",
+    description:
+      "The notes replace a₁ᵀx≤b₁ by a₁ᵀx≤b₁+1. Here b₁=5/2, so S′ has slanted facet 1ᵀx=7/2. The integer point (1,1,1), whose sum is 3, becomes an interior point of S′.",
+    formula: "S′={x≥0:1ᵀx≤7/2},   (1,1,1)∈interior(S′)∩ℤ³",
+    insight:
+      "This is the lattice point that maximality guarantees must appear after a strict enlargement.",
+    scene: lovaszScene3D(
+      [
+        tetrahedronMesh("Sprime", pushedTetraVertices, "S′", "removed", 0.16),
+        tetrahedronMesh("S0-inside", smallTetraVertices, "S", "ghost", 0.1),
+      ],
+      [marker3D("new-int", [1,1,1], "new interior integer point", "optimum", 0.105)],
+      [segment3D("push", [2.5/3,2.5/3,2.5/3], [3.5/3,3.5/3,3.5/3], "push b₁→b₁+1", C.rose)],
+      "After pushing the facet, (1,1,1) is strictly inside the larger tetrahedron.",
+    ),
+  },
+  {
+    id: "lovasz-3d-beta",
+    kicker: "Proof part 2 · Step 3 · 3D",
+    title: "Move back to the first integer level β̄₁=3",
+    description:
+      "Among interior integer points of S′ minimize a₁ᵀz=1ᵀz. The first possible value above 5/2 is 3, attained by z̄=(1,1,1). Replacing the pushed facet by 1ᵀx≤3 puts z̄ on the new boundary.",
+    formula: "β̄₁=min{1ᵀz:z∈interior(S′)∩ℤ³}=3",
+    insight:
+      "The first encountered lattice level gives exactly the maximal tetrahedron S̄=conv{0,3e₁,3e₂,3e₃}.",
+    scene: lovaszScene3D(
+      [
+        tetrahedronMesh("Sbar", tetraVertices, "S̄", "integer-hull", 0.18),
+        tetrahedronMesh("S0-beta", smallTetraVertices, "original hypothetical S", "ghost", 0.08),
+      ],
+      [marker3D("zbar", [1,1,1], "z̄ on 1ᵀx=β̄₁", "optimum", 0.11)],
+      [],
+      "The slanted facet stops exactly when it reaches the first integer level 3.",
+      [{ id: "beta-plane", points: [[3,0,0],[0,3,0],[0,0,3]], label: "1ᵀx=β̄₁=3", color: C.orange, opacity: 0.18 }],
+    ),
+  },
+  {
+    id: "lovasz-3d-final",
+    kicker: "Proof part 2 · Step 4 · 3D",
+    title: "The larger S̄ is still lattice-free, so maximality rules out the unblocked original facet",
+    description:
+      "By minimality of β̄₁ no integer point lies strictly beyond the old facet but strictly inside S̄. Therefore S̄ is lattice-free and strictly contains the hypothetical S₀. A maximal S could not allow this. Hence every facet of a bounded maximal lattice-free set must already contain a relative-interior lattice point.",
+    formula: "S⊂S̄, S̄ ℤ³-free ⇒ S was not maximal",
+    insight:
+      "The final tetrahedron displays all four blockers again, completing exactly the same two-part proof sequence as the 2D example.",
+    scene: lovaszScene3D(
+      [tetrahedronMesh("final", tetraVertices, "maximal S", "solid", 0.17)],
+      facetBlockers.map((p,i) => marker3D(`final-${i}`, p, i === 3 ? "all facets blocked" : undefined, "optimum", 0.075)),
+      [],
+      "Second conclusion: every facet has a lattice point in its relative interior.",
+    ),
   },
 ];
 
 const examples: VisualizationExample[] = [
   { id: "lovasz-2d", title: "2D · complete proof walkthrough", stages: stages2D },
-  { id: "lovasz-3d", title: "3D · tetrahedron and proof mechanism", stages: stages3D },
+  { id: "lovasz-3d", title: "3D · complete proof walkthrough", stages: stages3D },
 ];
 
 const visualization: VisualizationDefinition = {
@@ -263,9 +368,9 @@ const visualization: VisualizationDefinition = {
   chapter: "Lattice-free polyhedra",
   order: 6,
   description:
-    "Visualizes both conclusions and every proof step of Lemma 149: finite separation inside a bounding box gives polyhedrality, then a facet-pushing and first-integer-level argument forces a relative-interior lattice point on every facet.",
+    "Visualizes both conclusions and every proof step of Lemma 149: finite separation inside a bounding box gives polyhedrality, then a facet-pushing and first-integer-level argument forces a relative-interior lattice point on every facet. The 3D option now mirrors all eight 2D stages.",
   difficulty: "Advanced",
-  duration: 18,
+  duration: 22,
   accent: C.orange,
   visualLabel: "Maximal lattice-free geometry",
   insightLabel: "Proof step",
