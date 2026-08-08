@@ -190,6 +190,67 @@ export function tetrahedronMesh(
   };
 }
 
+/**
+ * L1 ball in R^3: {x : |x1-c1|+|x2-c2|+|x3-c3| <= radius}.
+ * It is the natural full-dimensional 3D analogue of the 2D diamond.
+ */
+export function octahedronMesh(
+  id: string,
+  center: Point3D,
+  radius: number,
+  label: string,
+  style: Mesh3D["style"] = "solid",
+  opacity = 0.22,
+): Mesh3D {
+  const [cx, cy, cz] = center;
+  return {
+    id,
+    label,
+    style,
+    opacity,
+    vertices: [
+      [cx + radius, cy, cz],
+      [cx - radius, cy, cz],
+      [cx, cy + radius, cz],
+      [cx, cy - radius, cz],
+      [cx, cy, cz + radius],
+      [cx, cy, cz - radius],
+    ],
+    faces: [
+      [0, 2, 4], [2, 1, 4], [1, 3, 4], [3, 0, 4],
+      [2, 0, 5], [1, 2, 5], [3, 1, 5], [0, 3, 5],
+    ],
+  };
+}
+
+/**
+ * The 3D cap {x >= 0 : lower <= x1+x2+x3 <= upper}.
+ * Useful for objective-threshold proofs where the objective is (1,1,1).
+ */
+export function simplexFrustumMesh(
+  id: string,
+  lower: number,
+  upper: number,
+  label: string,
+  style: Mesh3D["style"] = "removed",
+  opacity = 0.18,
+): Mesh3D {
+  return {
+    id,
+    label,
+    style,
+    opacity,
+    vertices: [
+      [lower, 0, 0], [0, lower, 0], [0, 0, lower],
+      [upper, 0, 0], [0, upper, 0], [0, 0, upper],
+    ],
+    faces: [
+      [0, 2, 1], [3, 4, 5],
+      [0, 1, 4, 3], [1, 2, 5, 4], [2, 0, 3, 5],
+    ],
+  };
+}
+
 export function integerMarkersInBox(
   prefix: string,
   lower: Point3D,
